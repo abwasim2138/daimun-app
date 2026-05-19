@@ -1,0 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@700;800&family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+@import 'tailwindcss' source(none);
+@source '../../**/*.{js,ts,jsx,tsx}';
+@import 'tw-animate-css';
+@import './default_theme.css';
+@import './globals.css';
