@@ -53,6 +53,7 @@ const ItikafGuidePage = React.lazy(() => import('./components/ItikafGuidePage').
 const EidGuidePage = React.lazy(() => import('./components/EidGuidePage').then(m => ({ default: m.EidGuidePage })));
 const EidTimesPage = React.lazy(() => import('./components/EidTimesPage').then(m => ({ default: m.EidTimesPage })));
 const RoadmapPage = React.lazy(() => import('./components/RoadmapPage').then(m => ({ default: m.RoadmapPage })));
+const PrivacyPage = React.lazy(() => import('./components/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 
 // ── Lazy: modals (loaded on first open, modal transition masks latency) ──
 const AddMosqueModal = React.lazy(() => import('./components/AddMosqueModal').then(m => ({ default: m.AddMosqueModal })));
@@ -305,6 +306,8 @@ export default function App() {
           <EidTimesPage onBack={() => navigate('/')} />
         ) : route.type === 'roadmap' ? (
           <RoadmapPage onBack={() => navigate('/')} onOpenFeedback={() => { navigate('/'); setTimeout(() => window.dispatchEvent(new CustomEvent('daimun:open-bug-report')), 100); }} />
+        ) : route.type === 'privacy' ? (
+          <PrivacyPage onBack={() => navigate('/')} />
         ) : route.type === 'masjid-landing' && 'id' in route ? (
           <MasjidLandingPage mosqueId={route.id} onBack={() => {
             // Clean up query param and go home
