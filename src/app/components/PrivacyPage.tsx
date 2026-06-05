@@ -17,9 +17,10 @@ import { SITE_URL } from '../utils/api';
  * content, max-w-2xl reading column, dark-mode aware.
  */
 
-function FadeUp({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+function FadeUp({ children, delay = 0, className = '', id }: { children: React.ReactNode; delay?: number; className?: string; id?: string }) {
   return (
     <motion.div
+      id={id}
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
@@ -76,7 +77,7 @@ export function PrivacyPage({ onBack }: PrivacyPageProps) {
           <h1 className="text-3xl sm:text-4xl font-medium tracking-tight text-gray-900 dark:text-white mb-2">
             D&#x101;im&#x16B;n Privacy Policy
           </h1>
-          <p className="text-sm text-gray-500 dark:text-white/40 mb-8">Last updated: 27 May 2026</p>
+          <p className="text-sm text-gray-500 dark:text-white/40 mb-8">Last updated: 4 June 2026</p>
         </FadeUp>
 
         <FadeUp delay={0.05}>
@@ -177,18 +178,64 @@ export function PrivacyPage({ onBack }: PrivacyPageProps) {
         <Section title="7. Your choices" delay={0.4}>
           <ul className="list-disc pl-5 space-y-2">
             <li>Uninstall the App to remove all on-device data.</li>
-            <li>For admins: contact us to delete your admin account.</li>
-            <li>Revoke any permission at any time in iOS Settings.</li>
+            <li>For admins: request deletion of your admin account &mdash; see <a href="#delete-account"
+              className="text-emerald-700 dark:text-emerald-400 underline decoration-dotted underline-offset-2 hover:decoration-solid">
+              &sect;8 below
+            </a>.</li>
+            <li>Revoke any permission at any time in iOS Settings or Android Settings &rarr; Apps &rarr; D&#x101;im&#x16B;n.</li>
           </ul>
         </Section>
 
-        <Section title="8. Changes to this policy" delay={0.45}>
+        <Section title="8. Account and data deletion" delay={0.42} id="delete-account">
+          <p className="mb-3">
+            Most users of D&#x101;im&#x16B;n don&rsquo;t have an account &mdash; there&rsquo;s no sign-up
+            for the consumer app. <strong>Uninstalling the App removes everything D&#x101;im&#x16B;n
+            has stored locally</strong> (favorites, theme choice, cached masjid list, reminder
+            configuration, location cache).
+          </p>
+
+          <h3 className="text-base font-medium mt-5 mb-2 text-gray-900 dark:text-white">
+            For masjid administrators
+          </h3>
+          <p className="mb-3">
+            If you signed in as a masjid admin, your email address and a hashed password live
+            in our Supabase Auth backend. To request deletion of your admin account and any
+            associated data:
+          </p>
+          <ol className="list-decimal pl-5 mb-3 space-y-1.5">
+            <li>Email <a href="mailto:admin@TampaRamadan.com?subject=Daimun%20account%20deletion%20request"
+              className="text-emerald-700 dark:text-emerald-400 underline decoration-dotted underline-offset-2 hover:decoration-solid">
+              admin@TampaRamadan.com
+            </a></li>
+            <li>Subject line: <em>Daim&#x16B;n account deletion request</em></li>
+            <li>Include the email address you signed in with so we can locate the account.</li>
+          </ol>
+          <p className="mb-3">
+            We process requests within <strong>14 days</strong> and email confirmation when
+            complete. Once deleted: your sign-in stops working, all admin scope is removed,
+            and any time-correction reports linked to your account ID are anonymised.
+          </p>
+
+          <h3 className="text-base font-medium mt-5 mb-2 text-gray-900 dark:text-white">
+            What we can&rsquo;t delete
+          </h3>
+          <p>
+            Anonymous community reports (the &ldquo;Report inaccurate time&rdquo; submissions described
+            in &sect;2b) carry no user identifier, so we can&rsquo;t connect them back to you to delete.
+            They stay in our masjid-quality database.
+          </p>
+        </Section>
+
+        <Section title="9. Changes to this policy" delay={0.45}>
           If we make material changes, we&rsquo;ll update the &ldquo;Last updated&rdquo; date above and
           (where appropriate) surface a notice in the App.
         </Section>
 
-        <Section title="9. Contact" delay={0.5}>
-          Questions? Reach us at <a href="https://github.com/abwasim2138/daimuniOS/issues"
+        <Section title="10. Contact" delay={0.5}>
+          Questions? Reach us at <a href="mailto:admin@TampaRamadan.com"
+            className="text-emerald-700 dark:text-emerald-400 underline decoration-dotted underline-offset-2 hover:decoration-solid">
+            admin@TampaRamadan.com
+          </a> or via <a href="https://github.com/abwasim2138/daimuniOS/issues"
             target="_blank" rel="noopener noreferrer"
             className="text-emerald-700 dark:text-emerald-400 underline decoration-dotted underline-offset-2 hover:decoration-solid">
             GitHub Issues
@@ -206,10 +253,10 @@ export function PrivacyPage({ onBack }: PrivacyPageProps) {
 }
 
 function Section({
-  title, delay, children,
-}: { title: string; delay: number; children: React.ReactNode }) {
+  title, delay, children, id,
+}: { title: string; delay: number; children: React.ReactNode; id?: string }) {
   return (
-    <FadeUp delay={delay} className="mb-8">
+    <FadeUp delay={delay} className="mb-8" id={id}>
       <h2 className="text-xl font-medium tracking-tight text-gray-900 dark:text-white mb-3">
         {title}
       </h2>
