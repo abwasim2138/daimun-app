@@ -155,16 +155,18 @@ export function RamadanCountdown({ mosques = [], favorites = new Set() }: Ramada
 
   return (
     <div className="mb-4 rounded-2xl overflow-hidden bg-gradient-to-br from-[#6B2F4A] to-[#4A1E35] dark:from-[#5A2840] dark:to-[#3D1A2D] shadow-lg">
-      {/* Image section */}
-      <div className="relative">
-        <ShimmerImage
-          src={lunarCalendarImg}
-          alt="When is Ramadan? — Lunar calendar showing moon phases"
-          className="w-full h-40 object-cover opacity-90"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#4A1E35]/90 dark:to-[#3D1A2D]/90" />
-        <a href="https://www.aljazeera.com/wp-content/uploads/2026/02/Screenshot-2026-02-12-at-7.44.34-PM-1770914689.png?resize=770%2C513&quality=80" target="_blank" rel="noopener noreferrer" className="absolute top-2 right-2.5 text-[9px] text-white/30 no-underline hover:text-white/50 transition-colors">Al Jazeera</a>
-      </div>
+      {/* Image section — lunarCalendarImg is only available in the Figma Make environment */}
+      {lunarCalendarImg && (
+        <div className="relative">
+          <ShimmerImage
+            src={lunarCalendarImg}
+            alt="When is Ramadan? — Lunar calendar showing moon phases"
+            className="w-full h-40 object-cover opacity-90"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#4A1E35]/90 dark:to-[#3D1A2D]/90" />
+          <a href="https://www.aljazeera.com/wp-content/uploads/2026/02/Screenshot-2026-02-12-at-7.44.34-PM-1770914689.png?resize=770%2C513&quality=80" target="_blank" rel="noopener noreferrer" className="absolute top-2 right-2.5 text-[9px] text-white/30 no-underline hover:text-white/50 transition-colors">Al Jazeera</a>
+        </div>
+      )}
 
       {/* Content section */}
       <div className="px-4 pb-4 pt-2 space-y-3">
