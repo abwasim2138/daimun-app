@@ -99,7 +99,7 @@ export function EidTimesPage({ onBack }: EidTimesPageProps) {
   const handleShare = useCallback(async () => {
     const url = `${SITE_URL}/eid-times`;
     const shareData = {
-      title: 'Eid al-Fitr Prayer Times — Dāimūn',
+      title: 'Eid al-Adha Prayer Times — Dāimūn',
       text: 'Find Eid prayer times at your local masjid. Eid Mubarak!',
       url,
     };
@@ -145,11 +145,9 @@ export function EidTimesPage({ onBack }: EidTimesPageProps) {
       );
     }
     
-    // Then filter to only show mosques with Eid info
-    result = result.filter(m => {
-      const eidTimes = getEidTimes(m);
-      return eidTimes.length > 0 || !!m.eidInfo;
-    });
+    // Hide last season's Eid data — until admins post new info for this Eid,
+    // this page shows the empty state instead of stale times.
+    result = [];
     
     // Sort by distance if user location is available
     if (userLocation) {
@@ -191,13 +189,13 @@ export function EidTimesPage({ onBack }: EidTimesPageProps) {
             <PartyPopper className="w-7 h-7 text-white" />
           </motion.div>
           <h1 className="text-2xl sm:text-3xl tracking-wide mb-2 text-gray-900 dark:text-white/90">
-            Eid al-Fitr 1447
+            Eid al-Adha 1447
           </h1>
           <p className="text-gray-500 dark:text-white/45 text-sm mb-1" style={{ lineHeight: '1.5' }}>
-            Friday, March 20, 2026 (Shawwal 1, 1447 AH)
+            Wednesday, May 27, 2026 (Dhul Hijja 10, 1447 AH)
           </p>
           <p className="text-emerald-600 dark:text-emerald-400 text-lg font-medium">
-            Eid Mubarak! 🌙
+            Eid Mubarak! 🎉
           </p>
         </FadeUp>
 
@@ -243,7 +241,7 @@ export function EidTimesPage({ onBack }: EidTimesPageProps) {
         ) : filteredMosques.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-400 dark:text-white/30 text-sm">
-              {searchQuery ? 'No mosques found matching your search.' : 'No mosques available.'}
+              {searchQuery ? 'No mosques found matching your search.' : 'Eid times haven’t been posted yet for this season. Check back closer to Eid.'}
             </div>
           </div>
         ) : (

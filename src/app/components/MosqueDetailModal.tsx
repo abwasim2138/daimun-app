@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Star, MapPin, Share2, Edit2, Calendar, Monitor, ExternalLink, Clock, Moon, Utensils, BookOpen, DoorClosed, Rows3, Flag, Printer, MessageCircle, Heart, Globe } from 'lucide-react';
+import { X, Star, MapPin, Share2, Edit2, Calendar, Monitor, ExternalLink, Clock, Moon, Utensils, BookOpen, DoorClosed, Rows3, Flag, Printer, MessageCircle, Heart, Globe, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner@2.0.3';
+import { useAuth } from './AuthContext';
 import { toHijri } from 'hijri-converter';
 import { calculateIqamaTimes, getNextPrayer } from '../utils/iqamaCalculator';
 import { PrayerTimesDisplay } from './PrayerTimesDisplay';
@@ -21,6 +23,26 @@ interface MosqueDetailModalProps {
   onEdit: (mosque: Mosque) => void;
   isAdmin?: boolean;
   onReportTime?: (mosque: Mosque) => void;
+  onScraped?: () => void;
+}
+
+// Returns true if the masjid's website is one we know how to scrape.
+// Keep this in sync with detectScraper() in the edge function.
+function supportsScraping(website: string | undefined): boolean {
+  if (!website) return false;
+  try {
+    const url = website.startsWith('http') ? website : `https://${website}`;
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    return (
+      host.includes('alrahmamasjid.org') ||
+      host.includes('masjidbox.com') ||
+      host.includes('istaba.org') ||
+      host.includes('themasjidapp.org') ||
+      host.includes('ictampa.org')
+    );
+  } catch {
+    return false;
+  }
 }
 
 const getDayName = (day: number) => {
@@ -65,8 +87,37 @@ export function MosqueDetailModal({
   onShare,
   onEdit,
   isAdmin,
-  onReportTime
+  onReportTime,
+  onScraped,
 }: MosqueDetailModalProps) {
+  const { accessToken } = useAuth();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const canScrape = supportsScraping(mosque.website);
+
+  const handleSync = async () => {
+    if (!accessToken) return;
+    setIsSyncing(true);
+    try {
+      const res = await fetch(`${API_URL}/mosques/${encodeURIComponent(mosque.id)}/scrape`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': publicAnonKey,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Sync failed');
+      } else {
+        toast.success(`Synced ${Object.keys(data.parsed || {}).length} times from website`);
+        onScraped?.();
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Sync failed');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   // Log the masjid ID when detail page opens
   console.log('Masjid ID:', mosque.id);
 
@@ -290,6 +341,23 @@ export function MosqueDetailModal({
               </button>
             )}
 
+            {/* Sync from website (admin only, scrape-supported masjids) */}
+            {isAdmin && canScrape && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSync();
+                }}
+                disabled={isSyncing}
+                className="flex flex-col items-center gap-1.5 w-[72px] flex-shrink-0 py-2 rounded-2xl hover:bg-gray-100/80 dark:hover:bg-white/[0.05] transition-colors active:scale-90 disabled:opacity-50"
+              >
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center">
+                  <RefreshCw className={`w-5 h-5 text-gray-500 dark:text-white/50 ${isSyncing ? 'animate-spin' : ''}`} strokeWidth={2} />
+                </div>
+                <span className="text-[11px] font-medium text-gray-500 dark:text-white/50">{isSyncing ? 'Syncing…' : 'Sync'}</span>
+              </button>
+            )}
+
             {/* TV Display (desktop only) */}
             <button
               onClick={(e) => {
@@ -416,8 +484,8 @@ export function MosqueDetailModal({
             </div>
           )}
 
-          {/* Ramadan Program — shown when masjid has info */}
-          {mosque.ramadanProgram && (mosque.ramadanProgram.tarawih || mosque.ramadanProgram.iftarProvided || mosque.ramadanProgram.itikaf || mosque.ramadanProgram.qiyam || mosque.ramadanProgram.khatmQuran) && (() => {
+          {/* Ramadan Program — hidden outside Ramadan season */}
+          {false && mosque.ramadanProgram && (mosque.ramadanProgram.tarawih || mosque.ramadanProgram.iftarProvided || mosque.ramadanProgram.itikaf || mosque.ramadanProgram.qiyam || mosque.ramadanProgram.khatmQuran) && (() => {
             const rp = mosque.ramadanProgram;
             return (
               <div>

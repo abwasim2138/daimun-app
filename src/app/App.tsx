@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, startTransition, Suspense } from 'react';
-import { MapPin, Bell, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map } from 'lucide-react';
+import { MapPin, Bell, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map, Smartphone } from 'lucide-react';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import { API_URL, SITE_URL } from './utils/api';
 import { navigate, parseRoute } from './utils/router';
@@ -13,6 +13,9 @@ import { Toaster } from './components/ui/sonner';
 
 // ── Critical path (home screen first paint) ──────────────────────────
 import { MosqueCard } from './components/MosqueCard';
+import { GetTheAppBanner } from './components/GetTheAppBanner';
+import { AppStoreBadge } from './components/AppStoreBadge';
+import { APP_ICON_DATA_URL as appIcon } from './components/appIconData';
 import { MosqueDetailModal } from './components/MosqueDetailModal';
 import { SearchBar } from './components/SearchBar';
 import { SmartSearchCard, isInformationalSearch } from './components/SmartSearchCard';
@@ -30,6 +33,7 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import { JanazaAlertCard } from './components/JanazaAlertCard';
 import { NotificationPrompt, useNotificationScheduler } from './components/NotificationPrompt';
 import { InstallPrompt } from './components/InstallPrompt';
+import { LoginModal } from './components/LoginModal';
 
 // ── Lazy: route-level pages (code-split, loaded on navigation) ───────
 const TVDisplayPage = React.lazy(() => import('./components/TVDisplayPage').then(m => ({ default: m.TVDisplayPage })));
@@ -53,12 +57,11 @@ const ItikafGuidePage = React.lazy(() => import('./components/ItikafGuidePage').
 const EidGuidePage = React.lazy(() => import('./components/EidGuidePage').then(m => ({ default: m.EidGuidePage })));
 const EidTimesPage = React.lazy(() => import('./components/EidTimesPage').then(m => ({ default: m.EidTimesPage })));
 const RoadmapPage = React.lazy(() => import('./components/RoadmapPage').then(m => ({ default: m.RoadmapPage })));
-const PrivacyPage = React.lazy(() => import('./components/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+const AndroidEarlyAccessPage = React.lazy(() => import('./components/AndroidEarlyAccessPage').then(m => ({ default: m.AndroidEarlyAccessPage })));
 
 // ── Lazy: modals (loaded on first open, modal transition masks latency) ──
 const AddMosqueModal = React.lazy(() => import('./components/AddMosqueModal').then(m => ({ default: m.AddMosqueModal })));
 const AddScheduledTimeChangeModal = React.lazy(() => import('./components/AddScheduledTimeChangeModal').then(m => ({ default: m.AddScheduledTimeChangeModal })));
-const LoginModal = React.lazy(() => import('./components/LoginModal').then(m => ({ default: m.LoginModal })));
 const ForgotPasswordModal = React.lazy(() => import('./components/ForgotPasswordModal').then(m => ({ default: m.ForgotPasswordModal })));
 const ResetPasswordModal = React.lazy(() => import('./components/ResetPasswordModal').then(m => ({ default: m.ResetPasswordModal })));
 const LogoutConfirmDialog = React.lazy(() => import('./components/LogoutConfirmDialog').then(m => ({ default: m.LogoutConfirmDialog })));
@@ -306,8 +309,8 @@ export default function App() {
           <EidTimesPage onBack={() => navigate('/')} />
         ) : route.type === 'roadmap' ? (
           <RoadmapPage onBack={() => navigate('/')} onOpenFeedback={() => { navigate('/'); setTimeout(() => window.dispatchEvent(new CustomEvent('daimun:open-bug-report')), 100); }} />
-        ) : route.type === 'privacy' ? (
-          <PrivacyPage onBack={() => navigate('/')} />
+        ) : route.type === 'android' ? (
+          <AndroidEarlyAccessPage onBack={() => navigate('/')} iconSrc={appIcon} />
         ) : route.type === 'masjid-landing' && 'id' in route ? (
           <MasjidLandingPage mosqueId={route.id} onBack={() => {
             // Clean up query param and go home
@@ -1291,6 +1294,21 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
     return filtered;
   }, [mosques, searchQuery, favorites, userLocation]);
 
+  // Eid al-Adha card state — computed once per render
+  const eidAdhaCard = (() => {
+    const eidDate = new Date('2026-05-27T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((eidDate.getTime() - today.getTime()) / 86400000);
+    if (diffDays < -3 || diffDays > 10) return null;
+    return {
+      diffDays,
+      isEidDay: diffDays === 0,
+      isPost: diffDays < 0,
+      isDhulHijja: diffDays > 3,
+    };
+  })();
+
   // Get paginated mosques
   const displayedMosques = useMemo(() => {
     return filteredMosques.slice(0, displayCount);
@@ -1821,9 +1839,9 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
   if (adminMode && !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0A0A0A]">
-        {authLoading ? (
-          <div className="text-gray-400 dark:text-white/30 text-sm">Checking authentication…</div>
-        ) : null}
+        <div className="text-gray-400 dark:text-white/30 text-sm">
+          {authLoading ? 'Checking authentication…' : 'Redirecting…'}
+        </div>
       </div>
     );
   }
@@ -2011,6 +2029,36 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
                   </div>
                 )}
 
+                {/* Eid al-Adha Card — shown during first 10 days of Dhul Hijja through 3 days after May 27 2026 */}
+                {!searchQuery && eidAdhaCard && (
+                  <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '60ms' } : undefined}>
+                    <button
+                      onClick={() => navigate('/eid-times')}
+                      className="w-full text-left mb-4 rounded-2xl overflow-hidden border border-amber-300/70 dark:border-amber-500/25 bg-gradient-to-br from-amber-50 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/30 p-4 active:scale-[0.99] transition-transform"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-500/20 flex-shrink-0">
+                            <PartyPopper className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-sm text-amber-900 dark:text-amber-100">
+                              {eidAdhaCard.isEidDay ? 'Eid al-Adha Mubarak!' : eidAdhaCard.isPost ? 'Eid al-Adha' : `Eid al-Adha in ${eidAdhaCard.diffDays} day${eidAdhaCard.diffDays !== 1 ? 's' : ''}`}
+                            </div>
+                            <div className="text-xs text-amber-700/80 dark:text-amber-300/60 mt-0.5">
+                              {eidAdhaCard.isEidDay ? 'Taqabbal Allahu minna wa minkum' : eidAdhaCard.isPost ? 'Eid prayer times & info' : eidAdhaCard.isDhulHijja ? 'Best days of the year — see Eid prayer times' : 'See Eid prayer times near you'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                          <span>View times</span>
+                          <span>→</span>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
                 {/* Iftar Countdown — during Ramadan fasting hours */}
                 {!searchQuery && isRamadan && (
                   <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '80ms' } : undefined}>
@@ -2102,6 +2150,13 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
                   </div>
                 )}
 
+                {/* Get the App banner — right before mosque list */}
+                {!searchQuery && (
+                  <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '310ms' } : undefined}>
+                    <GetTheAppBanner />
+                  </div>
+                )}
+
                 {displayedMosques.map((mosque, index) => {
                   const distance = userLocation
                     ? calculateDistance(userLocation.lat, userLocation.lng, mosque.latitude, mosque.longitude)
@@ -2147,6 +2202,29 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
         )}
           </>
         )}
+      </div>
+
+      {/* Get the App — footer card */}
+      <div className="max-w-2xl mx-auto px-5 mt-4 relative z-[1]">
+        <div className="rounded-2xl bg-white dark:bg-[#1C1C1E] border border-gray-200/70 dark:border-white/[0.09] overflow-hidden shadow-sm">
+          <div className="px-5 py-4 flex items-center gap-4">
+            <img src={appIcon} alt="Dāimūn app icon" className="w-12 h-12 rounded-2xl object-cover shadow flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">Get Dāimūn on your phone</p>
+              <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">iOS available now · Android in testing</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <AppStoreBadge />
+              <button
+                onClick={() => navigate('/android')}
+                className="h-[40px] flex items-center gap-1.5 px-3 border border-emerald-400/60 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 active:scale-[0.98] transition-all"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Join Beta
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
@@ -2417,6 +2495,7 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
             setSelectedMosqueForReport(mosque);
             setShowReportTimeModal(true);
           }}
+          onScraped={() => { fetchMosques(); }}
         />
       )}
 
@@ -2452,23 +2531,21 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
 
       {/* Login Modal */}
       {showLoginModal && (
-        <Suspense fallback={null}>
-          <LoginModal
-            onClose={() => setShowLoginModal(false)}
-            onLoginSuccess={() => {
-              setShowLoginModal(false);
-              navigate('/admin');
-            }}
-            onSwitchToRequestAccess={() => {
-              setShowLoginModal(false);
-              navigate('/request-access');
-            }}
-            onSwitchToForgotPassword={() => {
-              setShowLoginModal(false);
-              setShowForgotPasswordModal(true);
-            }}
-          />
-        </Suspense>
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={() => {
+            setShowLoginModal(false);
+            navigate('/admin');
+          }}
+          onSwitchToRequestAccess={() => {
+            setShowLoginModal(false);
+            navigate('/request-access');
+          }}
+          onSwitchToForgotPassword={() => {
+            setShowLoginModal(false);
+            setShowForgotPasswordModal(true);
+          }}
+        />
       )}
 
       {/* Forgot Password Modal */}

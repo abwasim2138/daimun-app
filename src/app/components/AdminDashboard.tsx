@@ -6,7 +6,7 @@ import {
   EyeOff, Eye, ChevronDown, Phone, Trash2, UserPlus, Mic,
   Moon, Utensils, Star, BookOpen, DoorClosed, Rows3, Mail, Building2,
   Search, MessageSquare, LogOut, Megaphone, Check, ShieldCheck, Users, Pencil, ShieldOff,
-  KeyRound, Share2
+  KeyRound, Share2, Smartphone
 } from 'lucide-react';
 import { toHijri } from 'hijri-converter';
 import { Mosque } from '../App';
@@ -386,6 +386,88 @@ function buildKhateebSmsUri(phone: string, name: string): string {
   const body = `Assalamu Alaykum ${firstName}, I hope you're doing well. Would you be available to give the khutbah this Friday (${fridayStr})? JazakAllahu Khairan.`;
   // Use ?&body= for cross-platform compat (iOS uses &body, Android uses ?body)
   return `sms:${digits}?&body=${encodeURIComponent(body)}`;
+}
+
+function EarlyAccessSection() {
+  const { accessToken } = useAuth();
+  const [list, setList] = useState<{ email: string; signedUpAt: string }[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const load = async () => {
+    if (list !== null) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/early-access`, {
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'apikey': publicAnonKey },
+      });
+      const data = await res.json();
+      setList(data.list || []);
+    } catch {
+      setList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggle = () => {
+    if (!expanded) load();
+    setExpanded(p => !p);
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl border border-gray-200 dark:border-white/[0.1] overflow-hidden">
+      <button
+        onClick={toggle}
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-50 dark:bg-green-950/30 rounded-xl flex-shrink-0">
+            <Smartphone className="w-4 h-4 text-green-600 dark:text-green-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Android Early Access</p>
+            <p className="text-xs text-gray-500 dark:text-white/40">
+              {list !== null ? `${list.length} sign-up${list.length !== 1 ? 's' : ''}` : 'Beta testers waitlist'}
+            </p>
+          </div>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-white/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-100 dark:border-white/[0.06] px-4 py-3">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader className="w-4 h-4 animate-spin text-gray-400 dark:text-white/30" />
+            </div>
+          ) : list && list.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-white/40 text-center py-4">No sign-ups yet.</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {(list || []).map((item) => (
+                <div key={item.email} className="flex items-center justify-between py-1.5 border-b border-gray-50 dark:border-white/[0.04] last:border-0">
+                  <span className="text-sm text-gray-800 dark:text-white/80 font-mono">{item.email}</span>
+                  <span className="text-xs text-gray-400 dark:text-white/30 ml-3 flex-shrink-0">
+                    {new Date(item.signedUpAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+            <button
+              onClick={() => { setList(null); load(); }}
+              className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Refresh
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function KhateebSection() {
@@ -1875,8 +1957,13 @@ export function AdminDashboard({
             <CharityAdminSection mosques={scopedMosques} />
           </motion.div>
 
-          {/* Khateeb Directory + Janaza */}
+          {/* Android Early Access */}
           <motion.div {...stagger(0.30)}>
+            <EarlyAccessSection />
+          </motion.div>
+
+          {/* Khateeb Directory + Janaza */}
+          <motion.div {...stagger(0.33)}>
             <KhateebSection />
             <div className="mt-4 bg-white dark:bg-[#1C1C1C] rounded-2xl border border-gray-200 dark:border-white/[0.1] p-4">
               <div className="flex items-start gap-3">
