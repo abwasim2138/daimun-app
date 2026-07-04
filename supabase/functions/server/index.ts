@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as kv from './kv_store.tsx';
 console.log('[BOOT] Imports resolved, v73-reset-flow', Date.now());
 
-const PREFIX = '/make-server-ccfc9a6d';
+const PREFIX = '/server';
 const app = new Hono().basePath(PREFIX);
 
 // ── CORS headers (applied at Deno.serve level for bulletproof coverage) ───────
