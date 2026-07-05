@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Smartphone } from 'lucide-react';
 import { AppStoreBadge } from './AppStoreBadge';
 import { navigate } from '../utils/router';
 import { SITE_URL } from '../utils/api';
+import heroEvents from '../assets/hero-events.png';
+import heroDetail from '../assets/hero-detail.png';
 
 // Fixed positions/delays for the ambient starfield — hand-placed rather than
 // randomized so they read as intentional (a few near the phone, none over the
@@ -33,14 +34,6 @@ interface DesktopHeroProps {
  * critical mobile bundle.
  */
 export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
-  const [screenshots, setScreenshots] = useState<{ mainDark: string; detail: string } | null>(null);
-
-  useEffect(() => {
-    import('./screenshotData').then((m) => {
-      setScreenshots({ mainDark: m.SCREENSHOT_MAINDARK, detail: m.SCREENSHOT_DETAIL });
-    }).catch(() => {});
-  }, []);
-
   return (
     <div className="hidden lg:block relative overflow-hidden">
       <div
@@ -144,34 +137,32 @@ export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
         >
           <div className="absolute w-[320px] h-[320px] rounded-full bg-gradient-to-br from-amber-400/20 via-transparent to-emerald-400/10 blur-3xl pointer-events-none" aria-hidden="true" />
 
-          {screenshots && (
-            <motion.div
-              className="relative"
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <img
-                src={screenshots.detail}
-                alt=""
-                className="absolute h-[340px] w-auto rounded-[1.75rem] shadow-2xl shadow-black/50 opacity-70 -left-16 top-16 -rotate-[8deg]"
-                aria-hidden="true"
-              />
-              <img
-                src={screenshots.mainDark}
-                alt="Dāimūn app showing live prayer times"
-                className="relative h-[440px] w-auto rounded-[1.75rem] shadow-2xl shadow-black/60 rotate-[3deg] ring-1 ring-white/10"
-              />
+          <motion.div
+            className="relative"
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <img
+              src={heroDetail}
+              alt=""
+              className="absolute h-[340px] w-auto rounded-[1.75rem] shadow-2xl shadow-black/50 opacity-70 -left-16 top-16 -rotate-[8deg]"
+              aria-hidden="true"
+            />
+            <img
+              src={heroEvents}
+              alt="Dāimūn app showing masjid events with reminders"
+              className="relative h-[440px] w-auto rounded-[1.75rem] shadow-2xl shadow-black/60 rotate-[3deg] ring-1 ring-white/10"
+            />
 
-              <motion.div
-                className="absolute -left-28 bottom-16 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl px-3 py-2 shadow-xl"
-                animate={{ y: [0, 8, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-              >
-                <p className="text-[10px] text-white/40 uppercase tracking-wide">Next salah</p>
-                <p className="text-sm text-amber-300 font-semibold">Asr &middot; 6:30 PM</p>
-              </motion.div>
+            <motion.div
+              className="absolute -left-28 bottom-16 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl px-3 py-2 shadow-xl"
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+            >
+              <p className="text-[10px] text-white/40 uppercase tracking-wide">Reminder set</p>
+              <p className="text-sm text-amber-300 font-semibold">15 min before Isha</p>
             </motion.div>
-          )}
+          </motion.div>
         </motion.div>
       </div>
     </div>
