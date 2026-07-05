@@ -34,6 +34,7 @@ import { JanazaAlertCard } from './components/JanazaAlertCard';
 import { NotificationPrompt, useNotificationScheduler } from './components/NotificationPrompt';
 import { InstallPrompt } from './components/InstallPrompt';
 import { LoginModal } from './components/LoginModal';
+import { DesktopHero } from './components/DesktopHero';
 
 // ── Lazy: route-level pages (code-split, loaded on navigation) ───────
 const TVDisplayPage = React.lazy(() => import('./components/TVDisplayPage').then(m => ({ default: m.TVDisplayPage })));
@@ -1922,6 +1923,8 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
           </div>
         )}
       </div>
+
+      <DesktopHero />
 
       {/* Mosques List */}
       <div className="max-w-2xl mx-auto px-5 space-y-4 pb-8 relative z-[1]">
