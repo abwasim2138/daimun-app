@@ -1841,7 +1841,7 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
         aria-hidden="true"
       />
       {/* Header - Apple minimalist style */}
-      <div className="bg-white/80 dark:bg-black/80 border-b border-gray-200/50 dark:border-white/[0.06] sticky top-0 z-10 backdrop-blur-xl">
+      <div className="bg-white/80 dark:bg-black/80 lg:bg-transparent lg:dark:bg-transparent border-b border-gray-200/50 dark:border-white/[0.06] sticky top-0 z-10 backdrop-blur-xl">
         <div className="max-w-2xl mx-auto px-5 py-4">
           <div className="flex items-center justify-between">
             {isRamadan ? (
