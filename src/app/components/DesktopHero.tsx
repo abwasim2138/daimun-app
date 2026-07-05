@@ -36,7 +36,7 @@ export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
     <div className="hidden lg:block relative overflow-hidden">
       <div
         className="absolute inset-0 dark:hidden"
-        style={{ background: 'linear-gradient(135deg, #fdfbf7, #f6ecd9, #eee0c2)' }}
+        style={{ background: 'linear-gradient(135deg, #fdfdfb, #f6f2ea, #ede5d8)' }}
         aria-hidden="true"
       />
       <div
