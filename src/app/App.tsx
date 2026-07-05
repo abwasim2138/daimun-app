@@ -15,6 +15,7 @@ import { Toaster } from './components/ui/sonner';
 import { MosqueCard } from './components/MosqueCard';
 import { GetTheAppBanner } from './components/GetTheAppBanner';
 import { GetAppPanel } from './components/GetAppPanel';
+import { MobileMiniHero } from './components/MobileMiniHero';
 import { APP_ICON_DATA_URL as appIcon } from './components/appIconData';
 import { MosqueDetailModal } from './components/MosqueDetailModal';
 import { SearchBar } from './components/SearchBar';
@@ -2069,6 +2070,13 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
                         setIsDetailModalOpen(true);
                       }}
                     />
+                  </div>
+                )}
+
+                {/* Mini hero — mobile/tablet only; desktop gets the full hero above the header */}
+                {!searchQuery && (
+                  <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '160ms' } : undefined}>
+                    <MobileMiniHero mosqueCount={mosques.length} />
                   </div>
                 )}
 
