@@ -88,7 +88,7 @@ export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] backdrop-blur-md border border-white/15 mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs text-white/70 tracking-wide">
-                {mosqueCount ? `${mosqueCount}+ masajid in Tampa Bay` : 'Free · Community-driven'}
+                {mosqueCount ? `${mosqueCount} masajid and counting` : 'Free · Community-driven'}
               </span>
             </div>
 
@@ -96,7 +96,7 @@ export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
               className="text-4xl xl:text-[2.75rem] font-semibold text-white mb-4 tracking-tight leading-[1.15]"
               style={{ fontFamily: "'Exo 2', sans-serif" }}
             >
-              Every masjid in Tampa Bay.<br />Always in your pocket.
+              Adhan and Iqama times for Tampa Bay.
             </h1>
             <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-md">
               Live iqama times, reliable prayer alerts, and Qibla direction &mdash; faster and more dependable in the app than on the web.
