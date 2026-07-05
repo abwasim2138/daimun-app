@@ -24,8 +24,20 @@ export function MobileMiniHero({ mosqueCount }: MobileMiniHeroProps) {
         style={{ background: 'linear-gradient(135deg, #12182a, #151c33, #0b0f1a)' }}
         aria-hidden="true"
       />
-      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-500/15 blur-2xl pointer-events-none" aria-hidden="true" />
-      <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-emerald-500/15 blur-2xl pointer-events-none" aria-hidden="true" />
+      {/* Soft glows via radial-gradient rather than a blurred solid circle —
+          `filter: blur()` doesn't reliably clip to a rounded-corner
+          `overflow-hidden` parent in every browser and can leave a sharp
+          square edge poking past the rounded corner. */}
+      <div
+        className="absolute -top-10 -right-10 w-40 h-40 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.18), transparent 70%)' }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute -bottom-10 -left-10 w-32 h-32 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%)' }}
+        aria-hidden="true"
+      />
 
       <div className="relative p-5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/15 mb-3">
