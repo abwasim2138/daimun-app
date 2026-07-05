@@ -10,7 +10,7 @@
  * - alt text uses the approved lockup phrase "Download on the App Store"
  */
 
-const APP_STORE_URL = 'https://apps.apple.com/us/app/daimun/id6772403917';
+export const APP_STORE_URL = 'https://apps.apple.com/us/app/daimun/id6772403917';
 
 // Apple's official badge CDN — black variant, en-US locale.
 // Apple provides this endpoint for developers to embed in marketing materials.

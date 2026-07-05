@@ -34,7 +34,6 @@ import { JanazaAlertCard } from './components/JanazaAlertCard';
 import { NotificationPrompt, useNotificationScheduler } from './components/NotificationPrompt';
 import { InstallPrompt } from './components/InstallPrompt';
 import { LoginModal } from './components/LoginModal';
-import { DesktopHero } from './components/DesktopHero';
 
 // ── Lazy: route-level pages (code-split, loaded on navigation) ───────
 const TVDisplayPage = React.lazy(() => import('./components/TVDisplayPage').then(m => ({ default: m.TVDisplayPage })));
@@ -59,6 +58,8 @@ const EidGuidePage = React.lazy(() => import('./components/EidGuidePage').then(m
 const EidTimesPage = React.lazy(() => import('./components/EidTimesPage').then(m => ({ default: m.EidTimesPage })));
 const RoadmapPage = React.lazy(() => import('./components/RoadmapPage').then(m => ({ default: m.RoadmapPage })));
 const AndroidEarlyAccessPage = React.lazy(() => import('./components/AndroidEarlyAccessPage').then(m => ({ default: m.AndroidEarlyAccessPage })));
+const DesktopHero = React.lazy(() => import('./components/DesktopHero').then(m => ({ default: m.DesktopHero })));
+const GetAppRedirect = React.lazy(() => import('./components/GetAppRedirect').then(m => ({ default: m.GetAppRedirect })));
 
 // ── Lazy: modals (loaded on first open, modal transition masks latency) ──
 const AddMosqueModal = React.lazy(() => import('./components/AddMosqueModal').then(m => ({ default: m.AddMosqueModal })));
@@ -312,6 +313,8 @@ export default function App() {
           <RoadmapPage onBack={() => navigate('/')} onOpenFeedback={() => { navigate('/'); setTimeout(() => window.dispatchEvent(new CustomEvent('daimun:open-bug-report')), 100); }} />
         ) : route.type === 'android' ? (
           <AndroidEarlyAccessPage onBack={() => navigate('/')} iconSrc={appIcon} />
+        ) : route.type === 'get-app' ? (
+          <GetAppRedirect />
         ) : route.type === 'masjid-landing' && 'id' in route ? (
           <MasjidLandingPage mosqueId={route.id} onBack={() => {
             // Clean up query param and go home
@@ -1924,7 +1927,9 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
         )}
       </div>
 
-      <DesktopHero />
+      <Suspense fallback={null}>
+        <DesktopHero mosqueCount={mosques.length} />
+      </Suspense>
 
       {/* Mosques List */}
       <div className="max-w-2xl mx-auto px-5 space-y-4 pb-8 relative z-[1]">

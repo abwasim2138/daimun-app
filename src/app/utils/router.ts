@@ -102,6 +102,7 @@ function parsePathname(pathname: string, _params: URLSearchParams): Route {
     '/eid-times':     'eid-times',
     '/roadmap':       'roadmap',
     '/android':       'android',
+    '/get-app':       'get-app',
   };
 
   const staticType = staticRoutes[p];
