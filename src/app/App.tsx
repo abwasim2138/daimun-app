@@ -13,7 +13,6 @@ import { Toaster } from './components/ui/sonner';
 
 // ── Critical path (home screen first paint) ──────────────────────────
 import { MosqueCard } from './components/MosqueCard';
-import { GetTheAppBanner } from './components/GetTheAppBanner';
 import { GetAppPanel } from './components/GetAppPanel';
 import { MobileMiniHero } from './components/MobileMiniHero';
 import { APP_ICON_DATA_URL as appIcon } from './components/appIconData';
@@ -2132,13 +2131,6 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
                 {!searchQuery && (
                   <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '200ms' } : undefined}>
                     <TahajjudCard data={tahajjudCardData} />
-                  </div>
-                )}
-
-                {/* Get the App banner — right before mosque list */}
-                {!searchQuery && (
-                  <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '310ms' } : undefined}>
-                    <GetTheAppBanner />
                   </div>
                 )}
 
