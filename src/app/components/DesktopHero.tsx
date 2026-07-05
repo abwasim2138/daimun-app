@@ -99,7 +99,7 @@ export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
               Adhan and Iqama times for Tampa Bay.
             </h1>
             <p className="text-white/55 text-lg leading-relaxed mb-8 max-w-md">
-              Iqama times and Qibla direction, right here on the web &mdash; notifications and events in the free app.
+              Notifications, events, Qibla compass, and more in the app.
             </p>
           </motion.div>
 
