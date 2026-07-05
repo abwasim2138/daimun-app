@@ -32,8 +32,11 @@ interface DesktopHeroProps {
  * Tailwind `dark:` variants rather than a fixed palette.
  */
 export function DesktopHero({ mosqueCount }: DesktopHeroProps) {
+  // Pulled up behind the sticky header (-117px = its rendered height) and
+  // padded back down so the gradient reaches the very top of the page while
+  // the actual content stays visually in the same place.
   return (
-    <div className="hidden lg:block relative overflow-hidden">
+    <div className="hidden lg:block relative overflow-hidden -mt-[117px] pt-[117px]">
       <div
         className="absolute inset-0 dark:hidden"
         style={{ background: 'linear-gradient(135deg, #fdfdfb, #f6f2ea, #ede5d8)' }}
