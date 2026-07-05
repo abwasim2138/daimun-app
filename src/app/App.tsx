@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, startTransition, Suspense } from 'react';
-import { MapPin, Bell, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map, Smartphone } from 'lucide-react';
+import { MapPin, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map, Smartphone } from 'lucide-react';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import { API_URL, SITE_URL } from './utils/api';
 import { navigate, parseRoute } from './utils/router';
@@ -25,13 +25,11 @@ import { RamadanCountdown } from './components/RamadanCountdown';
 import { IftarCountdownCard } from './components/IftarCountdownCard';
 import { SunnahFastingReminder } from './components/SunnahFastingReminder';
 import { TahajjudCard } from './components/TahajjudCard';
-import { EventCarousel } from './components/EventCarousel';
 import { usePrayerTheme } from './components/usePrayerTheme';
 import { useTheme } from 'next-themes@0.4.6';
 import { getFaviconDataURL } from './components/FaviconSVG';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { JanazaAlertCard } from './components/JanazaAlertCard';
-import { NotificationPrompt, useNotificationScheduler } from './components/NotificationPrompt';
 import { InstallPrompt } from './components/InstallPrompt';
 import { LoginModal } from './components/LoginModal';
 
@@ -423,18 +421,6 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
     return localStorage.getItem('daimun-location-card-dismissed') === 'true';
   });
 
-  // Notification re-enable state (tracks whether the prompt was dismissed so footer button can appear)
-  const [notificationsDismissedFlag, setNotificationsDismissedFlag] = useState(() => {
-    try {
-      const stored = localStorage.getItem('daimun-notification-prefs');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.dismissed === true && !parsed.enabled;
-      }
-    } catch {}
-    return false;
-  });
-  
   // Pagination state
   const [displayCount, setDisplayCount] = useState(10);
   const ITEMS_PER_PAGE = 10;
@@ -648,9 +634,6 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
   useEffect(() => {
     localStorage.setItem('mosqueFavorites', JSON.stringify(Array.from(favorites)));
   }, [favorites]);
-
-  // Run notification scheduler at the app level (always active, reads prefs from localStorage)
-  useNotificationScheduler(mosques, favorites);
 
   // Helper: merge client-side update timestamps
   const mergeMosqueTimestamps = (fetchedMosques: Mosque[]): Mosque[] => {
@@ -2089,13 +2072,6 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
                   </div>
                 )}
 
-                {/* Notification Prompt */}
-                {!searchQuery && (
-                  <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '160ms' } : undefined}>
-                    <NotificationPrompt key={`notif-${notificationsDismissedFlag}`} mosques={filteredMosques} favorites={favorites} onDismissChange={(dismissed) => setNotificationsDismissedFlag(dismissed)} />
-                  </div>
-                )}
-
                 {/* Location permission card — show when GPS not granted (even if we have approximate IP location) */}
                 {!searchQuery && locationSource !== 'gps' && locationSource !== 'cache' && locationDenied && !locationCardDismissed && (
                   <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '200ms' } : undefined}>
@@ -2148,13 +2124,6 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
                 {!searchQuery && (
                   <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '200ms' } : undefined}>
                     <TahajjudCard data={tahajjudCardData} />
-                  </div>
-                )}
-
-                {/* Event Carousel - Auto-rotating banner for today's events */}
-                {!searchQuery && (
-                  <div className={!hasAnimatedRef.current ? 'animate-card-enter' : undefined} style={!hasAnimatedRef.current ? { animationDelay: '280ms' } : undefined}>
-                    <EventCarousel mosques={mosques} />
                   </div>
                 )}
 
@@ -2269,25 +2238,8 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
           <InstallPrompt />
 
           {/* Re-enable buttons for dismissed cards */}
-          {((notificationsDismissedFlag && typeof Notification !== 'undefined' && Notification.permission !== 'denied') || (!userLocation && locationCardDismissed)) && (
+          {(!userLocation && locationCardDismissed) && (
             <div className="flex items-center justify-center gap-2 flex-wrap">
-              {notificationsDismissedFlag && typeof Notification !== 'undefined' && Notification.permission !== 'denied' && (
-                <button
-                  onClick={() => {
-                    try {
-                      const stored = localStorage.getItem('daimun-notification-prefs');
-                      const prefs = stored ? JSON.parse(stored) : {};
-                      prefs.dismissed = false;
-                      localStorage.setItem('daimun-notification-prefs', JSON.stringify(prefs));
-                    } catch {}
-                    setNotificationsDismissedFlag(false);
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs text-gray-500 dark:text-white/50 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.1] hover:text-gray-700 dark:hover:text-white/70 transition-colors active:scale-[0.98]"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                  <span>Enable Notifications</span>
-                </button>
-              )}
               {locationSource !== 'gps' && locationSource !== 'cache' && locationCardDismissed && (
                 <button
                   onClick={() => {

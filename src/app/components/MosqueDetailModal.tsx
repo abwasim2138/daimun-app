@@ -1,14 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Star, MapPin, Share2, Edit2, Calendar, Monitor, ExternalLink, Clock, Moon, Utensils, BookOpen, DoorClosed, Rows3, Flag, Printer, MessageCircle, Heart, Globe, RefreshCw } from 'lucide-react';
+import { X, Star, MapPin, Share2, Edit2, Monitor, ExternalLink, Moon, Utensils, BookOpen, DoorClosed, Rows3, Flag, Printer, MessageCircle, Heart, Globe, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { useAuth } from './AuthContext';
 import { toHijri } from 'hijri-converter';
 import { calculateIqamaTimes, getNextPrayer } from '../utils/iqamaCalculator';
 import { PrayerTimesDisplay } from './PrayerTimesDisplay';
 import { Mosque } from '../App';
-import { parseLocalDate } from '../utils/dateUtils';
-import { formatNthDay } from '../utils/nthDayUtils';
-import { sortEventsByProximity } from '../utils/eventSorter';
 import { API_URL, publicAnonKey, SITE_URL } from '../utils/api';
 import type { VolunteerOpportunity } from './VolunteersPage';
 import { navigate } from '../utils/router';
@@ -44,11 +41,6 @@ function supportsScraping(website: string | undefined): boolean {
     return false;
   }
 }
-
-const getDayName = (day: number) => {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[day];
-};
 
 // Helper function to linkify URLs in text
 const linkifyText = (text: string) => {
@@ -577,65 +569,6 @@ export function MosqueDetailModal({
               </div>
             );
           })()}
-
-          {/* Events */}
-          {mosque.events.length > 0 && (
-            <div>
-              <div className="text-[13px] uppercase tracking-widest text-gray-400 dark:text-white/35 font-medium mb-3">Events</div>
-              <div className="space-y-2">
-                {sortEventsByProximity(mosque.events).map(event => (
-                  <div key={event.id} className="bg-gray-50/80 dark:bg-white/[0.03] rounded-2xl p-4 border border-gray-100 dark:border-white/[0.06]">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-[15px] text-gray-900 dark:text-white">{event.title}</h4>
-                      <div className="text-[13px] text-gray-500 dark:text-white/50 mt-1">
-                        {event.recurring?.enabled ? (
-                          <>
-                            {event.recurring.frequency === 'daily' && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                                Every day at {event.time}
-                              </div>
-                            )}
-                            {event.recurring.frequency === 'weekly' && event.recurring.dayOfWeek !== undefined && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                                Every {getDayName(event.recurring.dayOfWeek)} at {event.time}
-                              </div>
-                            )}
-                            {event.recurring.frequency === 'monthly' && event.recurring.dayOfMonth !== undefined && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                                Monthly on day {event.recurring.dayOfMonth} at {event.time}
-                              </div>
-                            )}
-                            {event.recurring.frequency === 'nth-day' && event.recurring.nthWeek && event.recurring.nthDayOfWeek !== undefined && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                                Every {formatNthDay(event.recurring.nthDayOfWeek, event.recurring.nthWeek)} at {event.time}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
-                            {parseLocalDate(event.date).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })} at {event.time}
-                          </div>
-                        )}
-                      </div>
-                      {event.description && (
-                        <p className="text-[14px] text-gray-600 dark:text-white/60 mt-2 leading-relaxed">{event.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Volunteer Opportunities */}
           {mosqueVolunteers.length > 0 && (

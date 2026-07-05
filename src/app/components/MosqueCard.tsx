@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Star, MapPin, Calendar, Monitor, Share2, Edit2, Bell, MoreHorizontal, Moon, Utensils, BookOpen, DoorClosed, Rows3 } from 'lucide-react';
+import { Star, MapPin, Monitor, Share2, Edit2, Bell, MoreHorizontal, Moon, Utensils, BookOpen, DoorClosed, Rows3 } from 'lucide-react';
 import { toHijri } from 'hijri-converter';
 import { Mosque } from '../App';
 import { parseLocalDate } from '../utils/dateUtils';
 import { calculateIqamaTimes, getNextPrayer } from '../utils/iqamaCalculator';
 import { calculatePrayerTimes, formatPrayerTime, timeToMinutes } from '../utils/prayerTimes';
-import { isNthDayToday, formatNthDay } from '../utils/nthDayUtils';
-import { sortEventsByProximity } from '../utils/eventSorter';
 import { getAutoAnnouncements, formatAnnouncementMessage } from '../utils/scheduledChangeAnnouncer';
 import { navigate } from '../utils/router';
 
@@ -23,40 +21,6 @@ interface MosqueCardProps {
   onDetail: (mosque: Mosque) => void;
   canEdit: boolean;
 }
-
-const getDayName = (day: number) => {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[day];
-};
-
-// Check if an event is happening today
-const isEventToday = (event: any): boolean => {
-  const today = new Date();
-  const todayDateString = today.toISOString().split('T')[0];
-  
-  // For recurring events
-  if (event.recurring?.enabled) {
-    if (event.recurring.frequency === 'daily') {
-      return true;
-    }
-    if (event.recurring.frequency === 'weekly' && event.recurring.dayOfWeek !== undefined) {
-      return today.getDay() === event.recurring.dayOfWeek;
-    }
-    if (event.recurring.frequency === 'monthly' && event.recurring.dayOfMonth !== undefined) {
-      return today.getDate() === event.recurring.dayOfMonth;
-    }
-    if (event.recurring.frequency === 'nth-day' && event.recurring.nthWeek && event.recurring.nthDayOfWeek !== undefined) {
-      return isNthDayToday(today, event.recurring.nthDayOfWeek, event.recurring.nthWeek);
-    }
-  }
-  
-  // For one-time events
-  if (event.date) {
-    return event.date === todayDateString;
-  }
-  
-  return false;
-};
 
 export const MosqueCard = React.memo(function MosqueCard({ 
   mosque, 
@@ -131,12 +95,6 @@ export const MosqueCard = React.memo(function MosqueCard({
     }
     return `${Math.floor(diffHours)}h ago`;
   })();
-
-  // Filter events to only show today's events on the main card
-  const todaysEvents = mosque.events.filter(isEventToday);
-
-  // Sort events by proximity
-  const sortedEvents = sortEventsByProximity(todaysEvents);
 
   const handleCardClick = () => {
     onDetail(mosque);
@@ -455,30 +413,6 @@ export const MosqueCard = React.memo(function MosqueCard({
           </div>
         )}
 
-        {/* Events — spacing-only separation, no hard border */}
-        {sortedEvents.length > 0 && (
-          <div className="mt-4">
-            <div className="flex items-center gap-1.5 text-[13px] text-gray-500 dark:text-white/50 mb-2 font-medium">
-              <Calendar className="w-3.5 h-3.5" strokeWidth={2} />
-              <span>Today</span>
-            </div>
-            <div className="space-y-1">
-              {sortedEvents.slice(0, 2).map(event => (
-                <div key={event.id} className="text-[15px] flex items-baseline gap-1.5">
-                  <span className="text-gray-900 dark:text-white/90 font-medium truncate">{event.title}</span>
-                  <span className="text-gray-400 dark:text-white/35 text-[13px] flex-shrink-0">
-                    {event.time}
-                  </span>
-                </div>
-              ))}
-              {sortedEvents.length > 2 && (
-                <div className="text-[13px] text-gray-400 dark:text-white/30">
-                  +{sortedEvents.length - 2} more
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
