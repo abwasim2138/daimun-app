@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, startTransition, Suspense } from 'react';
-import { MapPin, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map, Smartphone } from 'lucide-react';
+import { MapPin, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map } from 'lucide-react';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import { API_URL, SITE_URL } from './utils/api';
 import { navigate, parseRoute } from './utils/router';
@@ -14,7 +14,7 @@ import { Toaster } from './components/ui/sonner';
 // ── Critical path (home screen first paint) ──────────────────────────
 import { MosqueCard } from './components/MosqueCard';
 import { GetTheAppBanner } from './components/GetTheAppBanner';
-import { AppStoreBadge } from './components/AppStoreBadge';
+import { GetAppPanel } from './components/GetAppPanel';
 import { APP_ICON_DATA_URL as appIcon } from './components/appIconData';
 import { MosqueDetailModal } from './components/MosqueDetailModal';
 import { SearchBar } from './components/SearchBar';
@@ -2183,25 +2183,7 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
 
       {/* Get the App — footer card */}
       <div className="max-w-2xl mx-auto px-5 mt-4 relative z-[1]">
-        <div className="rounded-2xl bg-white dark:bg-[#1C1C1E] border border-gray-200/70 dark:border-white/[0.09] overflow-hidden shadow-sm">
-          <div className="px-5 py-4 flex items-center gap-4">
-            <img src={appIcon} alt="Dāimūn app icon" className="w-12 h-12 rounded-2xl object-cover shadow flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">Get Dāimūn on your phone</p>
-              <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">iOS available now · Android in testing</p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <AppStoreBadge />
-              <button
-                onClick={() => navigate('/android')}
-                className="h-[40px] flex items-center gap-1.5 px-3 border border-emerald-400/60 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 active:scale-[0.98] transition-all"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                Join Beta
-              </button>
-            </div>
-          </div>
-        </div>
+        <GetAppPanel qrOnlyOnDesktop />
       </div>
 
       {/* Footer */}
