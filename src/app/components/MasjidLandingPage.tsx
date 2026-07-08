@@ -8,6 +8,7 @@ import { calculatePrayerTimes, formatPrayerTime } from '../utils/prayerTimes';
 import { parseLocalDate } from '../utils/dateUtils';
 import { formatNthDay } from '../utils/nthDayUtils';
 import { sortEventsByProximity } from '../utils/eventSorter';
+import { GetAppPanel } from './GetAppPanel';
 import type { VolunteerOpportunity } from './VolunteersPage';
 
 const ReportTimeModal = lazy(() => import('./ReportTimeModal').then(m => ({ default: m.ReportTimeModal })));
@@ -674,6 +675,11 @@ export function MasjidLandingPage({ mosqueId, onBack }: MasjidLandingPageProps) 
             </div>
           </section>
         )}
+
+        {/* ── Get the App ── */}
+        <section>
+          <GetAppPanel />
+        </section>
 
         {/* ── See other masjids ── */}
         <section className="text-center">
