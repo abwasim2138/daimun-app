@@ -2,6 +2,12 @@
   command = "pnpm vite build"
   publish = "dist"
 
+# Edge functions live in netlify/edge-functions/ and declare their own routes
+# via the inline `export const config` in each file:
+#   seo.ts     — injects per-page SEO meta + JSON-LD into the SPA shell
+#   sitemap.ts — serves a live /sitemap.xml built from the masjid list
+
+# SPA fallback — every other path serves the app shell.
 [[redirects]]
   from = "/*"
   to = "/index.html"

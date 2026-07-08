@@ -3,8 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
-    <title>Dāimūn</title>
+    <meta name="theme-color" content="#0A0A0A" />
+
+    <!-- Primary meta -->
+    <title>Daimun — Prayer &amp; Iqama Times for Tampa Bay Masjids</title>
+    <meta
+      name="description"
+      content="Accurate daily prayer times and iqama times for masjids across Tampa Bay — Tampa, Brandon, Clearwater, Sarasota, Wesley Chapel and more. Jummah times, Ramadan schedules, and janazah announcements from your local masjid."
+    />
+    <meta
+      name="keywords"
+      content="iqama times Tampa, prayer times Tampa, salah times Tampa Bay, masjid near me, Tampa masjid, jummah times Tampa, Islamic center Tampa, prayer times near me"
+    />
+    <meta name="author" content="Daimun" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://daimun.app/" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Daimun" />
+    <meta property="og:title" content="Daimun — Prayer &amp; Iqama Times for Tampa Bay Masjids" />
+    <meta
+      property="og:description"
+      content="Accurate daily prayer times and iqama times for masjids across Tampa Bay — Tampa, Brandon, Clearwater, Sarasota, Wesley Chapel and more."
+    />
+    <meta property="og:url" content="https://daimun.app/" />
+    <meta property="og:image" content="https://daimun.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Daimun — Prayer &amp; Iqama Times for Tampa Bay Masjids" />
+    <meta
+      name="twitter:description"
+      content="Accurate daily prayer and iqama times for masjids across Tampa Bay."
+    />
+    <meta name="twitter:image" content="https://daimun.app/og-image.png" />
+
+    <!-- Perf: warm up the API origin early -->
+    <link rel="preconnect" href="https://qwydfsqcarkfkyeeuonr.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://qwydfsqcarkfkyeeuonr.supabase.co" />
+
+    <!-- Structured data: Organization + WebSite -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://daimun.app/#organization",
+            "name": "Daimun",
+            "url": "https://daimun.app/",
+            "logo": "https://daimun.app/icon-512.png",
+            "description": "Daimun provides accurate daily prayer times and iqama times for masjids across the Tampa Bay area.",
+            "areaServed": {
+              "@type": "Place",
+              "name": "Tampa Bay, Florida"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://daimun.app/#website",
+            "url": "https://daimun.app/",
+            "name": "Daimun",
+            "publisher": { "@id": "https://daimun.app/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://daimun.app/?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,0 +1,11 @@
+# Daimun — https://daimun.app
+User-agent: *
+Allow: /
+
+# Keep admin / edit / internal tooling out of the index
+Disallow: /admin
+Disallow: /edit/
+Disallow: /tv/
+Disallow: /request-access
+
+Sitemap: https://daimun.app/sitemap.xml
