@@ -1,5 +1,5 @@
 import type { Config } from "https://edge.netlify.com";
-import { SITE_URL, fetchMosques } from "./_shared.ts";
+import { SITE_URL, fetchMosques } from "../edge-lib/shared.ts";
 
 // Static, indexable content routes (in priority order).
 const STATIC_PATHS: Array<{ path: string; priority: string; changefreq: string }> = [

@@ -1,5 +1,6 @@
 // Shared helpers for the SEO + sitemap edge functions.
-// (Netlify ignores files beginning with "_", so this is not a function itself.)
+// Lives outside netlify/edge-functions/ because Netlify treats every file
+// directly in that directory as a function requiring a default export.
 
 export const SITE_URL = "https://daimun.app";
 

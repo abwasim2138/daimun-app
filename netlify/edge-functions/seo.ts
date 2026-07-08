@@ -9,7 +9,7 @@ import {
   escapeHtml,
   jsonLdSafe,
   type Mosque,
-} from "./_shared.ts";
+} from "../edge-lib/shared.ts";
 
 // Static content pages get hand-written, keyword-aware meta.
 const STATIC_META: Record<string, { title: string; description: string }> = {
