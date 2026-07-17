@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Zap, FlaskConical, MessageSquare, CheckCircle, Loader, Mail, Users } from 'lucide-react';
+import { ArrowLeft, Zap, FlaskConical, MessageSquare, CheckCircle, Loader, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from 'next-themes@0.4.6';
 import { API_URL } from '../utils/api';
@@ -9,10 +9,6 @@ interface Props {
   onBack: () => void;
   iconSrc: string;
 }
-
-// Google Play requires 12 testers opted in for 14 continuous days
-// before a new app can be promoted to production.
-const TESTER_GOAL = 12;
 
 const BULLETS = [
   { icon: Zap, text: 'Access to active test builds before public launch' },
@@ -28,32 +24,12 @@ export function AndroidEarlyAccessPage({ onBack, iconSrc }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
-  const [count, setCount] = useState<number | null>(null);
   const [screenshots, setScreenshots] = useState<{ mainDark: string; mainLight: string; detail: string } | null>(null);
 
   useEffect(() => {
     import('./screenshotData').then((m) => {
       setScreenshots({ mainDark: m.SCREENSHOT_MAINDARK, mainLight: m.SCREENSHOT_MAINLIGHT, detail: m.SCREENSHOT_DETAIL });
     }).catch(console.error);
-  }, []);
-
-  const fetchCount = async () => {
-    try {
-      const res = await fetch(`${API_URL}/early-access/count`, {
-        headers: {
-          'apikey': publicAnonKey,
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await res.json();
-      if (typeof data.total === 'number') setCount(data.total);
-    } catch (err) {
-      console.error('Failed to fetch tester count:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchCount();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +56,6 @@ export function AndroidEarlyAccessPage({ onBack, iconSrc }: Props) {
 
       setDuplicate(data.duplicate === true);
       setDone(true);
-      fetchCount();
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -189,41 +164,6 @@ export function AndroidEarlyAccessPage({ onBack, iconSrc }: Props) {
                     </motion.div>
                   </div>
                 </div>
-              )}
-
-              {/* Tester progress — Google Play requires 12 testers to launch */}
-              {count !== null && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="mb-8 bg-white dark:bg-[#1C1C1E] border border-gray-200/60 dark:border-white/[0.07] rounded-2xl p-4"
-                >
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        {Math.min(count, TESTER_GOAL)} of {TESTER_GOAL} testers
-                      </span>
-                    </div>
-                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      {Math.round((Math.min(count, TESTER_GOAL) / TESTER_GOAL) * 100)}%
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100 dark:bg-white/[0.07] overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min((count / TESTER_GOAL) * 100, 100)}%` }}
-                      transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1], delay: 0.2 }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-white/40 mt-2.5 leading-relaxed">
-                    {count >= TESTER_GOAL
-                      ? "We've hit the tester goal — but more testers keep it strong. Jump in!"
-                      : `Google requires ${TESTER_GOAL} active testers before Dāimūn can launch on the Play Store. Help us get there — every tester counts!`}
-                  </p>
-                </motion.div>
               )}
 
               {/* Form */}
