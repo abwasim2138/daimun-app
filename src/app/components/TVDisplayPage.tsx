@@ -7,7 +7,7 @@ import { isNthDayToday, formatNthDay } from '../utils/nthDayUtils';
 import { navigate } from '../utils/router';
 import { sortEventsByProximity } from '../utils/eventSorter';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
-import { API_URL } from '../utils/api';
+import { API_URL, SITE_URL } from '../utils/api';
 import { toHijri, toGregorian } from 'hijri-converter';
 import { Moon } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -506,7 +506,7 @@ export function TVDisplayPage({ mosqueId }: TVDisplayPageProps) {
       }`}>
         <div className="bg-white rounded-[clamp(0.25rem,0.6vh,0.75rem)] p-[clamp(0.25rem,0.5vh,0.6rem)] shadow-lg shadow-black/30">
           <QRCodeSVG
-            value="https://daimun.app"
+            value={`${SITE_URL}/get-app`}
             size={56}
             level="M"
             bgColor="#ffffff"
