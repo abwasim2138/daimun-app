@@ -82,7 +82,7 @@ export function DeedsPage({ onBack }: Props) {
       icon: Droplet,
       label: 'Water',
       deed: 'The wudū before every salah.',
-      body: 'Every wudū made at these taps. Every thirst quenched between salah. Every worshipper who stands purified.',
+      body: 'Every wudū made at these taps. Every tree on the grounds kept green. Every worshipper who stands purified.',
       ring: 'ring-teal-500 dark:ring-teal-400 border-teal-400/60 dark:border-teal-400/40',
       tint: 'bg-teal-50/70 dark:bg-teal-500/[0.07]',
       iconColor: 'text-teal-600 dark:text-teal-400',
