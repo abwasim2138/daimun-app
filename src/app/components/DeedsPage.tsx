@@ -72,7 +72,7 @@ export function DeedsPage({ onBack }: Props) {
       icon: Lightbulb,
       label: 'Electricity',
       deed: 'The light on the path to Fajr.',
-      body: 'Every step through a lit doorway. Every rakʿah beneath these lights. Every night the doors stay open.',
+      body: 'Every step through a lit doorway. Every rakʿah beneath these lights. Every prayer hall kept cool through summer.',
       ring: 'ring-amber-500 dark:ring-amber-400 border-amber-400/60 dark:border-amber-400/40',
       tint: 'bg-amber-50/70 dark:bg-amber-500/[0.07]',
       iconColor: 'text-amber-600 dark:text-amber-400',
