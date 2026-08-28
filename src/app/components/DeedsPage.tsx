@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Lightbulb, Droplet, CheckCircle, Loader, User, Phone, Sparkles } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Droplet, CheckCircle, Loader, User, Phone, Sprout } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { API_URL } from '../utils/api';
 import { publicAnonKey } from '../utils/supabase/info';
@@ -72,7 +72,7 @@ export function DeedsPage({ onBack }: Props) {
       icon: Lightbulb,
       label: 'Electricity',
       deed: 'The light on the path to Fajr.',
-      body: 'Every step through a lit doorway. Every rakʿah beneath these lights. Every prayer hall kept cool through summer.',
+      body: 'Every step through a lit doorway. Every rakʿah beneath these lights. Every prayer hall kept cool or warm.',
       ring: 'ring-amber-500 dark:ring-amber-400 border-amber-400/60 dark:border-amber-400/40',
       tint: 'bg-amber-50/70 dark:bg-amber-500/[0.07]',
       iconColor: 'text-amber-600 dark:text-amber-400',
@@ -82,7 +82,7 @@ export function DeedsPage({ onBack }: Props) {
       icon: Droplet,
       label: 'Water',
       deed: 'The wudū before every salah.',
-      body: 'Every wudū made at these taps. Every tree on the grounds kept hydrated. Every worshipper who stands purified.',
+      body: 'Every wudū made at these taps. Every tree on the grounds kept hydrated.',
       ring: 'ring-teal-500 dark:ring-teal-400 border-teal-400/60 dark:border-teal-400/40',
       tint: 'bg-teal-50/70 dark:bg-teal-500/[0.07]',
       iconColor: 'text-teal-600 dark:text-teal-400',
@@ -139,7 +139,7 @@ export function DeedsPage({ onBack }: Props) {
               {/* Hero */}
               <div className="mb-9">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25 mb-5">
-                  <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  <Sprout className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                   <span className="text-xs font-medium text-amber-700 dark:text-amber-400 tracking-wide">
                     Sadaqah Jāriyah
                   </span>
