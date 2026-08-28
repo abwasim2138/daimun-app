@@ -6,7 +6,7 @@ import {
   EyeOff, Eye, ChevronDown, Phone, Trash2, UserPlus, Mic,
   Moon, Utensils, Star, BookOpen, DoorClosed, Rows3, Mail, Building2,
   Search, MessageSquare, LogOut, Megaphone, Check, ShieldCheck, Users, Pencil, ShieldOff,
-  KeyRound, Share2, Smartphone
+  KeyRound, Share2, Smartphone, HandHeart
 } from 'lucide-react';
 import { toHijri } from 'hijri-converter';
 import { Mosque } from '../App';
@@ -458,6 +458,194 @@ function EarlyAccessSection() {
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
             <button
               onClick={() => { setList(null); load(); }}
+              className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Refresh
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface DeedsInterest {
+  id: string;
+  name: string;
+  phone: string;
+  utility: 'electricity' | 'water' | 'either';
+  submittedAt: string;
+  contacted?: boolean;
+}
+
+const UTILITY_LABEL: Record<DeedsInterest['utility'], string> = {
+  electricity: 'Electricity',
+  water: 'Water',
+  either: 'Either',
+};
+
+/** People who offered to cover a masjid's utility bill via /deeds. */
+function DeedsInterestSection() {
+  const { accessToken } = useAuth();
+  const [list, setList] = useState<DeedsInterest[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const authHeaders = { 'Authorization': `Bearer ${accessToken}`, 'apikey': publicAnonKey };
+
+  const load = async (force = false) => {
+    if (list !== null && !force) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/deeds-interest`, { headers: authHeaders });
+      const data = await res.json();
+      setList(data.list || []);
+    } catch {
+      setList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggle = () => {
+    if (!expanded) load();
+    setExpanded(p => !p);
+  };
+
+  const setContacted = async (entry: DeedsInterest, contacted: boolean) => {
+    setList(prev => (prev || []).map(e => (e.id === entry.id ? { ...e, contacted } : e)));
+    try {
+      await fetch(`${API_URL}/deeds-interest/${entry.id}`, {
+        method: 'PUT',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contacted }),
+      });
+    } catch {
+      // Revert on failure so the UI doesn't lie about what's saved
+      setList(prev => (prev || []).map(e => (e.id === entry.id ? { ...e, contacted: !contacted } : e)));
+    }
+  };
+
+  const remove = async (entry: DeedsInterest) => {
+    if (!confirm(`Remove ${entry.name} from the deeds list?`)) return;
+    const prev = list;
+    setList(l => (l || []).filter(e => e.id !== entry.id));
+    try {
+      await fetch(`${API_URL}/deeds-interest/${entry.id}`, { method: 'DELETE', headers: authHeaders });
+    } catch {
+      setList(prev || []);
+    }
+  };
+
+  const pending = (list || []).filter(e => !e.contacted).length;
+
+  return (
+    <div className="bg-white dark:bg-[#1C1C1C] rounded-2xl border border-gray-200 dark:border-white/[0.1] overflow-hidden">
+      <button
+        onClick={toggle}
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-xl flex-shrink-0">
+            <HandHeart className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Cover a Bill</p>
+            <p className="text-xs text-gray-500 dark:text-white/40">
+              {list !== null
+                ? `${list.length} interested${pending > 0 ? ` · ${pending} to call` : ''}`
+                : 'Utility sponsorship offers'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {pending > 0 && (
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
+              {pending}
+            </span>
+          )}
+          <ChevronDown className={`w-4 h-4 text-gray-400 dark:text-white/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-100 dark:border-white/[0.06] px-4 py-3">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader className="w-4 h-4 animate-spin text-gray-400 dark:text-white/30" />
+            </div>
+          ) : list && list.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-white/40 text-center py-4">No offers yet.</p>
+          ) : (
+            <div className="space-y-2.5 max-h-80 overflow-y-auto">
+              {(list || []).map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-xl border p-3 transition-opacity ${
+                    item.contacted
+                      ? 'border-gray-100 dark:border-white/[0.05] opacity-55'
+                      : 'border-gray-200 dark:border-white/[0.1]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-white/40 font-mono mt-0.5">{item.phone}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-white/50">
+                        {UTILITY_LABEL[item.utility] || item.utility}
+                      </span>
+                      <span className="text-[11px] text-gray-400 dark:text-white/30">
+                        {new Date(item.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <a
+                      href={`tel:${item.phone.replace(/\D/g, '')}`}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs hover:bg-emerald-100 dark:hover:bg-emerald-950/50 transition-colors"
+                    >
+                      <Phone className="w-3 h-3" />
+                      Call
+                    </a>
+                    <a
+                      href={`sms:${item.phone.replace(/\D/g, '')}?&body=${encodeURIComponent(
+                        `Assalamu Alaykum ${item.name.split(' ')[0]}, thank you for offering to help cover a masjid's bills through Dāimūn. Do you have a few minutes to go over what's open right now?`
+                      )}`}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-white/60 text-xs hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Message
+                    </a>
+                    <button
+                      onClick={() => setContacted(item, !item.contacted)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                        item.contacted
+                          ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-500 dark:text-white/40'
+                          : 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50'
+                      }`}
+                    >
+                      <Check className="w-3 h-3" />
+                      {item.contacted ? 'Reached' : 'Mark reached'}
+                    </button>
+                    <button
+                      onClick={() => remove(item)}
+                      className="ml-auto p-1.5 rounded-lg text-gray-400 dark:text-white/30 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                      aria-label={`Remove ${item.name}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+            <button
+              onClick={() => load(true)}
               className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
@@ -1959,6 +2147,8 @@ export function AdminDashboard({
 
           {/* Android Early Access */}
           <motion.div {...stagger(0.30)}>
+            <DeedsInterestSection />
+
             <EarlyAccessSection />
           </motion.div>
 

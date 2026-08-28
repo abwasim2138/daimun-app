@@ -1564,6 +1564,90 @@ app.get('/early-access', requireAuth, async (c) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ██  DEEDS — UTILITY SPONSORSHIP INTEREST
+// ══════════════════════════════════════════════════════════════════════════════
+
+const DEEDS_UTILITIES = ['electricity', 'water', 'either'];
+
+// POST /deeds-interest — public, records someone willing to cover a utility bill.
+// Keyed on the phone digits so a repeat submission updates rather than piles up.
+app.post('/deeds-interest', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const name = (body.name || '').trim();
+    const phone = (body.phone || '').trim();
+    const utility = (body.utility || '').trim().toLowerCase();
+
+    if (!name) return c.json({ error: 'Please enter your name.' }, 400);
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) return c.json({ error: 'Please enter a valid phone number.' }, 400);
+    if (!DEEDS_UTILITIES.includes(utility)) {
+      return c.json({ error: 'Please choose which bill you would like to cover.' }, 400);
+    }
+
+    const key = `deeds-interest:${digits}`;
+    const existing = await kv.get(key);
+    const record = {
+      id: digits,
+      name,
+      phone,
+      utility,
+      submittedAt: existing?.submittedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contacted: existing?.contacted ?? false,
+    };
+    await kv.set(key, record);
+    console.log(`[DEEDS] Interest from ${name} — ${utility}`);
+    return c.json({ ok: true, duplicate: !!existing });
+  } catch (error) {
+    console.error('Deeds interest error:', error);
+    return c.json({ error: 'Something went wrong. Please try again.', details: String(error) }, 500);
+  }
+});
+
+// GET /deeds-interest — admin-only, full list (newest first)
+app.get('/deeds-interest', requireAuth, async (c) => {
+  try {
+    const records = await kv.getByPrefix('deeds-interest:');
+    const list = (records || []).sort((a: any, b: any) =>
+      new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    );
+    return c.json({ list, total: list.length });
+  } catch (error) {
+    console.error('Deeds interest list error:', error);
+    return c.json({ error: 'Failed to fetch list.', details: String(error) }, 500);
+  }
+});
+
+// PUT /deeds-interest/:id — admin-only, mark whether they've been reached
+app.put('/deeds-interest/:id', requireAuth, async (c) => {
+  try {
+    const id = c.req.param('id');
+    const { contacted } = await c.req.json();
+    if (typeof contacted !== 'boolean') return c.json({ error: 'Invalid status' }, 400);
+    const existing = await kv.get(`deeds-interest:${id}`);
+    if (!existing) return c.json({ error: 'Entry not found' }, 404);
+    const updated = { ...existing, contacted, contactedAt: contacted ? new Date().toISOString() : undefined };
+    await kv.set(`deeds-interest:${id}`, updated);
+    return c.json({ success: true, entry: updated });
+  } catch (error) {
+    console.error('Deeds interest update error:', error);
+    return c.json({ error: 'Failed to update entry', details: String(error) }, 500);
+  }
+});
+
+// DELETE /deeds-interest/:id — admin-only
+app.delete('/deeds-interest/:id', requireAuth, async (c) => {
+  try {
+    await kv.del(`deeds-interest:${c.req.param('id')}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Deeds interest delete error:', error);
+    return c.json({ error: 'Failed to delete entry', details: String(error) }, 500);
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ██  404 + SERVE
 // ══════════════════════════════════════════════════════════════════════════════
 

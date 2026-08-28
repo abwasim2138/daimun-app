@@ -4,6 +4,7 @@ import { SITE_URL, fetchMosques } from "../edge-lib/shared.ts";
 // Static, indexable content routes (in priority order).
 const STATIC_PATHS: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: "/", priority: "1.0", changefreq: "daily" },
+  { path: "/deeds", priority: "0.7", changefreq: "monthly" },
   { path: "/qibla", priority: "0.6", changefreq: "monthly" },
   { path: "/etiquette", priority: "0.5", changefreq: "monthly" },
   { path: "/eid-times", priority: "0.6", changefreq: "monthly" },

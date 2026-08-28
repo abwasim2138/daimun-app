@@ -53,6 +53,11 @@ const STATIC_META: Record<string, { title: string; description: string }> = {
     description:
       "Eid al-Fitr and Eid al-Adha salah times for masjids across Tampa Bay. Find the Eid prayer nearest you.",
   },
+  "/deeds": {
+    title: "Cover a Masjid's Electric or Water Bill — Tampa Bay | Daimun",
+    description:
+      "Sponsor a Tampa Bay masjid's electricity or water bill and share in every deed it makes possible — the light on the path to Fajr, the wudū before every salah.",
+  },
   "/whats-new": {
     title: "What's New — Daimun",
     description: "The latest features and updates to Daimun.",

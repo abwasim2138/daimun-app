@@ -54,7 +54,7 @@ export function parseRoute(): Route {
     const validPages = [
       'request-access', 'whats-new', 'etiquette', 'share', 'qibla',
       'volunteers', 'charity', 'join', 'zakat-al-fitr', 'itikaf-guide', 'eid-guide', 'eid-times',
-      'roadmap', 'android',
+      'roadmap', 'android', 'deeds',
     ];
     if (validPages.includes(pageParam)) {
       // Upgrade to clean pathname
@@ -103,6 +103,7 @@ function parsePathname(pathname: string, _params: URLSearchParams): Route {
     '/roadmap':       'roadmap',
     '/android':       'android',
     '/get-app':       'get-app',
+    '/deeds':         'deeds',
   };
 
   const staticType = staticRoutes[p];

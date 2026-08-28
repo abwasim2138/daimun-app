@@ -58,6 +58,7 @@ const RoadmapPage = React.lazy(() => import('./components/RoadmapPage').then(m =
 const AndroidEarlyAccessPage = React.lazy(() => import('./components/AndroidEarlyAccessPage').then(m => ({ default: m.AndroidEarlyAccessPage })));
 const DesktopHero = React.lazy(() => import('./components/DesktopHero').then(m => ({ default: m.DesktopHero })));
 const GetAppRedirect = React.lazy(() => import('./components/GetAppRedirect').then(m => ({ default: m.GetAppRedirect })));
+const DeedsPage = React.lazy(() => import('./components/DeedsPage').then(m => ({ default: m.DeedsPage })));
 
 // ── Lazy: modals (loaded on first open, modal transition masks latency) ──
 const AddMosqueModal = React.lazy(() => import('./components/AddMosqueModal').then(m => ({ default: m.AddMosqueModal })));
@@ -313,6 +314,8 @@ export default function App() {
           <AndroidEarlyAccessPage onBack={() => navigate('/')} iconSrc={appIcon} />
         ) : route.type === 'get-app' ? (
           <GetAppRedirect />
+        ) : route.type === 'deeds' ? (
+          <DeedsPage onBack={() => navigate('/')} />
         ) : route.type === 'masjid-landing' && 'id' in route ? (
           <MasjidLandingPage mosqueId={route.id} onBack={() => {
             // Clean up query param and go home
