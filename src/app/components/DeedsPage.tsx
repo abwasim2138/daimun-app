@@ -91,6 +91,43 @@ export function DeedsPage({ onBack }: Props) {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#0A0A0A]">
+      {/* Page-local motion. Slow and low-amplitude, in keeping with the
+          border-flow / shimmer timings used elsewhere in the app. */}
+      <style>{`
+        @keyframes deeds-glow {
+          0%, 100% { opacity: 0.30; transform: scale(0.90); }
+          50%      { opacity: 0.70; transform: scale(1.08); }
+        }
+        @keyframes deeds-drift {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-2.5px); }
+        }
+        @keyframes deeds-underline-in {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
+        }
+        .deeds-glow  { animation: deeds-glow 4.5s ease-in-out infinite; }
+        .deeds-drift { animation: deeds-drift 4.5s ease-in-out infinite; }
+
+        .deeds-underline { position: relative; display: inline-block; }
+        .deeds-underline::after {
+          content: '';
+          position: absolute;
+          left: 0; right: 0; bottom: 0.04em;
+          height: 0.07em;
+          border-radius: 999px;
+          background: currentColor;
+          opacity: 0.45;
+          transform-origin: left center;
+          animation: deeds-underline-in 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .deeds-glow, .deeds-drift { animation: none; }
+          .deeds-underline::after { animation: none; transform: scaleX(1); }
+        }
+      `}</style>
+
       {/* Nav bar */}
       <div className="bg-white/80 dark:bg-black/80 border-b border-gray-200/50 dark:border-white/[0.06] sticky top-0 z-20 backdrop-blur-xl">
         <div className="max-w-lg mx-auto px-5 py-3 flex items-center">
@@ -148,7 +185,9 @@ export function DeedsPage({ onBack }: Props) {
                 <h1 className="text-gray-900 dark:text-white text-4xl font-bold tracking-tight leading-[1.05] mb-4">
                   Pay the bill.
                   <br />
-                  <span className="text-amber-600 dark:text-amber-400">Earn the deed.</span>
+                  <span className="text-amber-600 dark:text-amber-400">
+                    <span className="deeds-underline">Earn</span> the deed.
+                  </span>
                 </h1>
 
                 <p className="text-gray-500 dark:text-white/50 text-[15px] leading-relaxed">
@@ -183,7 +222,18 @@ export function DeedsPage({ onBack }: Props) {
                               : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.16]'
                           }`}
                         >
-                          <Icon className={`w-6 h-6 mb-3 ${opt.iconColor}`} strokeWidth={1.8} />
+                          <div className="relative w-6 h-6 mb-3">
+                            {opt.key === 'electricity' && (
+                              <span
+                                aria-hidden="true"
+                                className="deeds-glow absolute -inset-2 rounded-full bg-amber-400/35 dark:bg-amber-300/25 blur-md pointer-events-none"
+                              />
+                            )}
+                            <Icon
+                              className={`relative w-6 h-6 ${opt.iconColor} ${opt.key === 'water' ? 'deeds-drift' : ''}`}
+                              strokeWidth={1.8}
+                            />
+                          </div>
                           <div className="text-[15px] font-semibold text-gray-900 dark:text-white mb-1.5">
                             {opt.label}
                           </div>
