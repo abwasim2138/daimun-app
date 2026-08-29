@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, Lightbulb, Droplet, CheckCircle, Loader, User, Phone, Sprout } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ArrowLeft, Lightbulb, Droplet, CheckCircle, Loader, User, Phone, Sprout, Check, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { API_URL } from '../utils/api';
 import { publicAnonKey } from '../utils/supabase/info';
@@ -27,12 +27,38 @@ export function DeedsPage({ onBack }: Props) {
   const [done, setDone] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
 
+  const [choiceError, setChoiceError] = useState<string | null>(null);
+  const choicesRef = useRef<HTMLDivElement | null>(null);
+
   const phoneDigits = phone.replace(/\D/g, '');
-  const canSubmit = name.trim().length > 0 && phoneDigits.length >= 10 && utility !== null;
+
+  /** Pick a bill and clear the "you haven't picked one" warning. */
+  const choose = (key: Utility) => {
+    setUtility(key);
+    setChoiceError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setChoiceError(null);
+
+    // Validate in the order the fields appear, so the message always points
+    // at the first thing that still needs doing.
+    if (!utility) {
+      setChoiceError('Choose which bill you’d like to cover — electricity, water, or either.');
+      choicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!name.trim()) {
+      setError('Please enter your name so we know who we’re speaking with.');
+      return;
+    }
+    if (phoneDigits.length < 10) {
+      setError('Please enter a phone number we can reach you on.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -66,6 +92,7 @@ export function DeedsPage({ onBack }: Props) {
     ring: string;
     tint: string;
     iconColor: string;
+    tickBg: string;
   }[] = [
     {
       key: 'electricity',
@@ -76,6 +103,7 @@ export function DeedsPage({ onBack }: Props) {
       ring: 'ring-amber-500 dark:ring-amber-400 border-amber-400/60 dark:border-amber-400/40',
       tint: 'bg-amber-50/70 dark:bg-amber-500/[0.07]',
       iconColor: 'text-amber-600 dark:text-amber-400',
+      tickBg: 'bg-amber-500 dark:bg-amber-500',
     },
     {
       key: 'water',
@@ -86,6 +114,7 @@ export function DeedsPage({ onBack }: Props) {
       ring: 'ring-teal-500 dark:ring-teal-400 border-teal-400/60 dark:border-teal-400/40',
       tint: 'bg-teal-50/70 dark:bg-teal-500/[0.07]',
       iconColor: 'text-teal-600 dark:text-teal-400',
+      tickBg: 'bg-teal-600 dark:bg-teal-500',
     },
   ];
 
@@ -199,14 +228,27 @@ export function DeedsPage({ onBack }: Props) {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} noValidate>
                 {/* Choose a bill */}
-                <div className="mb-3">
-                  <p className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-white/35 mb-3">
-                    What would you like to cover?
+                <div className="mb-3" ref={choicesRef}>
+                  <div className="flex items-baseline justify-between gap-3 mb-1">
+                    <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-white/45">
+                      Step 1 — Choose one to cover
+                    </p>
+                    <span className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-white/30">
+                      Required
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-gray-500 dark:text-white/45 mb-3">
+                    Tick the bill you&rsquo;d like to put your sadaqah toward.
                   </p>
 
-                  <div className="grid sm:grid-cols-2 gap-3">
+                  <div
+                    role="radiogroup"
+                    aria-label="Which bill would you like to cover?"
+                    aria-required="true"
+                    className="grid sm:grid-cols-2 gap-3"
+                  >
                     {options.map((opt) => {
                       const Icon = opt.icon;
                       const selected = utility === opt.key;
@@ -214,14 +256,28 @@ export function DeedsPage({ onBack }: Props) {
                         <button
                           key={opt.key}
                           type="button"
-                          onClick={() => setUtility(opt.key)}
-                          aria-pressed={selected}
-                          className={`text-left rounded-2xl border p-4 transition-all active:scale-[0.99] ${opt.tint} ${
+                          onClick={() => choose(opt.key)}
+                          role="radio"
+                          aria-checked={selected}
+                          className={`relative text-left rounded-2xl border p-4 transition-all active:scale-[0.99] ${opt.tint} ${
                             selected
                               ? `ring-2 ${opt.ring}`
-                              : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.16]'
+                              : choiceError
+                                ? 'border-red-300 dark:border-red-800/60'
+                                : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.16]'
                           }`}
                         >
+                          <span
+                            aria-hidden="true"
+                            className={`absolute top-3.5 right-3.5 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                              selected
+                                ? `${opt.tickBg} border-transparent`
+                                : 'border-gray-300 dark:border-white/20 bg-white/60 dark:bg-white/[0.04]'
+                            }`}
+                          >
+                            {selected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                          </span>
+
                           <div className="relative w-6 h-6 mb-3">
                             {opt.key === 'electricity' && (
                               <span
@@ -250,25 +306,55 @@ export function DeedsPage({ onBack }: Props) {
 
                   <button
                     type="button"
-                    onClick={() => setUtility('either')}
-                    aria-pressed={utility === 'either'}
-                    className={`mt-3 w-full text-left rounded-2xl border px-4 py-3.5 transition-all active:scale-[0.99] ${
+                    onClick={() => choose('either')}
+                    role="radio"
+                    aria-checked={utility === 'either'}
+                    className={`relative mt-3 w-full text-left rounded-2xl border pl-4 pr-12 py-3.5 transition-all active:scale-[0.99] ${
                       utility === 'either'
                         ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 border-emerald-400/60 dark:border-emerald-400/40 bg-emerald-50/70 dark:bg-emerald-500/[0.07]'
-                        : 'border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1E] hover:border-gray-300 dark:hover:border-white/[0.16]'
+                        : choiceError
+                          ? 'border-red-300 dark:border-red-800/60 bg-white dark:bg-[#1C1C1E]'
+                          : 'border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1E] hover:border-gray-300 dark:hover:border-white/[0.16]'
                     }`}
                   >
+                    <span
+                      aria-hidden="true"
+                      className={`absolute top-1/2 -translate-y-1/2 right-3.5 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                        utility === 'either'
+                          ? 'bg-emerald-600 dark:bg-emerald-500 border-transparent'
+                          : 'border-gray-300 dark:border-white/20 bg-white/60 dark:bg-white/[0.04]'
+                      }`}
+                    >
+                      {utility === 'either' && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                    </span>
                     <span className="text-[15px] font-semibold text-gray-900 dark:text-white">Either</span>
                     <span className="block text-[13px] text-gray-500 dark:text-white/45 mt-0.5">
                       Put me wherever the need is greatest.
                     </span>
                   </button>
+
+                  <AnimatePresence>
+                    {choiceError && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        role="alert"
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl px-4 py-3">
+                          <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-red-700 dark:text-red-400">{choiceError}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Contact */}
                 <div className="mt-7 space-y-3">
-                  <p className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-white/35">
-                    How we reach you
+                  <p className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-white/45">
+                    Step 2 — How we reach you
                   </p>
 
                   <AnimatePresence>
@@ -277,8 +363,10 @@ export function DeedsPage({ onBack }: Props) {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl px-4 py-3"
+                        role="alert"
+                        className="flex items-start gap-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl px-4 py-3"
                       >
+                        <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                       </motion.div>
                     )}
@@ -314,7 +402,7 @@ export function DeedsPage({ onBack }: Props) {
 
                   <button
                     type="submit"
-                    disabled={isLoading || !canSubmit}
+                    disabled={isLoading}
                     className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl text-sm font-medium hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
