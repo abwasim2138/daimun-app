@@ -6,6 +6,7 @@ import { AddEventModal } from './AddEventModal';
 import { EditEventModal } from './EditEventModal';
 import { AddAnnouncementModal } from './AddAnnouncementModal';
 import { AddScheduledTimeChangeModal } from './AddScheduledTimeChangeModal';
+import { EmbedCodePanel } from './EmbedCodePanel';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { API_URL } from '../utils/api';
 import { useAuth } from './AuthContext';
@@ -409,6 +410,18 @@ export function EditPage({ mosqueId, onBack }: EditPageProps) {
           }}
           asPage={true}
         />
+
+        <div className="mt-6">
+          <EmbedCodePanel
+            mosqueId={mosqueId}
+            mosqueName={mosque.name}
+            jumuahCount={
+              Array.isArray(mosque.iqamaTimes?.jumuah)
+                ? mosque.iqamaTimes.jumuah.length
+                : mosque.iqamaTimes?.jumuah ? 1 : 0
+            }
+          />
+        </div>
       </div>
 
       {/* Add Event Modal */}

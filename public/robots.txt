@@ -6,6 +6,7 @@ Allow: /
 Disallow: /admin
 Disallow: /edit/
 Disallow: /tv/
+Disallow: /embed/
 Disallow: /request-access
 
 Sitemap: https://daimun.app/sitemap.xml
