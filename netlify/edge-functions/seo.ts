@@ -300,5 +300,7 @@ export const config: Config = {
     "/*.js", "/*.mjs", "/*.css", "/*.map",
     "/*.json", "/*.xml", "/*.txt", "/*.webmanifest",
     "/admin", "/edit/*", "/tv/*",
+    // Widget iframes on masjid sites: nothing to add, so skip the edge hop
+    "/embed/*",
   ],
 };

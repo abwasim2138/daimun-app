@@ -30,9 +30,29 @@ function makeCompatPlugin(): Plugin {
   };
 }
 
+/**
+ * Serve /embed/<id> from embed.html in dev, mirroring the Netlify rewrite in
+ * public/_redirects. (/embed.js is a different path and is left alone.)
+ */
+function embedDevRewrite(): Plugin {
+  return {
+    name: 'embed-dev-rewrite',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url && /^\/embed\/[^/?]+/.test(req.url)) {
+          const q = req.url.indexOf('?');
+          req.url = '/embed.html' + (q >= 0 ? req.url.slice(q) : '');
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     makeCompatPlugin(),
+    embedDevRewrite(),
     react(),
     tailwindcss(),
   ],
@@ -44,5 +64,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        // The embeddable widget: its own tiny page, no app shell
+        embed: path.resolve(__dirname, 'embed.html'),
+      },
+    },
   },
 })

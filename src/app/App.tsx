@@ -59,8 +59,6 @@ const AndroidEarlyAccessPage = React.lazy(() => import('./components/AndroidEarl
 const DesktopHero = React.lazy(() => import('./components/DesktopHero').then(m => ({ default: m.DesktopHero })));
 const GetAppRedirect = React.lazy(() => import('./components/GetAppRedirect').then(m => ({ default: m.GetAppRedirect })));
 const DeedsPage = React.lazy(() => import('./components/DeedsPage').then(m => ({ default: m.DeedsPage })));
-const EmbedWidget = React.lazy(() => import('./components/EmbedWidget').then(m => ({ default: m.EmbedWidget })));
-
 // ── Lazy: modals (loaded on first open, modal transition masks latency) ──
 const AddMosqueModal = React.lazy(() => import('./components/AddMosqueModal').then(m => ({ default: m.AddMosqueModal })));
 const AddScheduledTimeChangeModal = React.lazy(() => import('./components/AddScheduledTimeChangeModal').then(m => ({ default: m.AddScheduledTimeChangeModal })));
@@ -254,11 +252,6 @@ export default function App() {
         <Suspense fallback={<RouteLoading />}>
         {route.type === 'tv' && 'id' in route ? (
           <TVDisplayPage mosqueId={route.id} />
-        ) : route.type === 'embed' && 'id' in route ? (
-          // Own boundary: the shared full-screen loader would flash inside the host site
-          <Suspense fallback={null}>
-            <EmbedWidget mosqueId={route.id} />
-          </Suspense>
         ) : route.type === 'edit' && 'id' in route ? (
           <EditPage 
             mosqueId={route.id} 

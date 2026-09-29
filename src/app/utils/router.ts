@@ -71,9 +71,7 @@ function parsePathname(pathname: string, _params: URLSearchParams): Route {
   const p = pathname === '/' ? '/' : pathname.replace(/\/$/, '');
 
   // ── Parameterised routes ──────────────────────────────────────
-  if (p.startsWith('/tv/'))        return { type: 'tv', id: p.slice(4) };
-  if (p.startsWith('/embed/'))     return { type: 'embed', id: p.slice(7) };
-  if (p.startsWith('/edit/'))      return { type: 'edit', id: p.slice(6) };
+  if (p.startsWith('/tv/'))        return { type: 'tv', id: p.slice(4) };  if (p.startsWith('/edit/'))      return { type: 'edit', id: p.slice(6) };
   if (p.startsWith('/mosque/'))    return { type: 'mosque', id: p.slice(8) };
   if (p.startsWith('/timetable/')) return { type: 'timetable', id: p.slice(11) };
   if (p.startsWith('/masjid/')) {
