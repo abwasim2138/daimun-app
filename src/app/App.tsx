@@ -159,6 +159,14 @@ export interface ScheduledTimeChange {
   startDate: string; // ISO date string - when this change takes effect
   endDate?: string; // Optional ISO date string - when to revert to base time
   reason?: string; // Optional reason for the change (e.g., "Daylight Saving Time", "Summer Schedule")
+  source?: 'timesync'; // Set when created by automatic time sync (which replaces its own entries each run)
+}
+
+/** Automatic iqama-time sync from the masjid's online timetable (server: timesync.ts). */
+export interface TimeSyncConfig {
+  enabled: boolean;
+  source?: { provider: 'themasjidapp' | 'athanplus'; id: string };
+  changedAt?: string;
 }
 
 export interface RamadanProgram {
@@ -200,6 +208,7 @@ export interface Mosque {
   announcements?: Announcement[]; // Deprecated - kept for backward compatibility
   scheduledTimeChanges?: ScheduledTimeChange[]; // New field for scheduled iqama time changes
   updatedAt?: string; // ISO timestamp of last modification
+  timeSync?: TimeSyncConfig;
   website?: string;
   whatsappChannel?: string; // WhatsApp Channel invite URL (e.g., https://whatsapp.com/channel/...)
   note?: string; // Special notes about the masjid (e.g., different location for Jumuah)

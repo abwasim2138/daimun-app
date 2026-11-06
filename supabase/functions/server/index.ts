@@ -2,6 +2,10 @@ console.log('[BOOT] Edge function module loading… v73-reset-flow', Date.now())
 import { Hono } from 'https://esm.sh/hono@4.7.4';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as kv from './kv_store.tsx';
+import {
+  SYNC_TAG, SyncError, TIMEZONE, applyPlan, fetchSchedule, findSource, planSync, shortDate, sourceUrl, todayIn,
+  type TimeSource,
+} from './timesync.ts';
 console.log('[BOOT] Imports resolved, v73-reset-flow', Date.now());
 
 const PREFIX = '/server';
@@ -122,9 +126,9 @@ async function requireAuth(c: any, next: any) {
 function applyMatureScheduledChanges(mosque: any): boolean {
   if (!mosque.scheduledTimeChanges || mosque.scheduledTimeChanges.length === 0) return false;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  // Tampa's date, not the server's: the server runs on UTC, which turns over
+  // at 7–8 PM Tampa time and would put tomorrow's times up the evening before.
+  const todayStr = todayIn(TIMEZONE);
 
   let modified = false;
   const remaining: any[] = [];
@@ -233,284 +237,146 @@ app.delete('/mosques/:id', async (c) => {
   }
 });
 
-// ── Scrape iqama times from masjid website ───────────────────────────────────
-// First scraper: Al-Rahma (alrahmamasjid.org) — WordPress "masjidal" widget
-// renders today's iqama times directly in the page HTML.
+// ── Automatic iqama-time sync ────────────────────────────────────────────────
+// Reads a masjid's schedule from the prayer-times service on its own website
+// (see timesync.ts). Runs twice a day from a Netlify scheduled function for
+// every masjid whose admin has turned it on.
 
-function normalizeTime(raw: string): string {
-  return raw.replace(/\s+/g, ' ').trim().toUpperCase();
-}
+const syncStatusKey = (id: string) => `timesync-status:${id}`;
 
-function parseAlRahma(html: string): { iqamaTimes: any; debug: any } {
-  const slideMatch = html.match(
-    /class="mySlides_new fade count_1"[\s\S]*?(?=class="mySlides_new fade count_2"|$)/,
-  );
-  const slide = slideMatch ? slideMatch[0] : html;
-
-  const prayerRe =
-    /<span class="namze_name">\s*([A-Za-z']+)\s*<\/span>[\s\S]*?<div class="time_namze">\s*<span[^>]*>([^<]+)<\/span>\s*<span[^>]*>([^<]+)<\/span>/g;
-
-  const found: Record<string, { start: string; iqama: string }> = {};
-  let m: RegExpExecArray | null;
-  while ((m = prayerRe.exec(slide)) !== null) {
-    const key = m[1].toLowerCase().replace(/[^a-z]/g, '');
-    found[key] = { start: normalizeTime(m[2]), iqama: normalizeTime(m[3]) };
-  }
-
-  const jumuahMatch = slide.match(/class="jamu-sec"[\s\S]*?<h1>([^<]+)<\/h1>/);
-  const jumuah = jumuahMatch ? normalizeTime(jumuahMatch[1]) : null;
-
-  const toFixed = (t: string | undefined) =>
-    t ? { type: 'fixed' as const, time: t } : undefined;
-
-  const iqamaTimes: any = {};
-  if (found.fajr) iqamaTimes.fajr = toFixed(found.fajr.iqama);
-  if (found.dhuhr) iqamaTimes.dhuhr = toFixed(found.dhuhr.iqama);
-  if (found.asr) iqamaTimes.asr = toFixed(found.asr.iqama);
-  if (found.maghrib) iqamaTimes.maghrib = toFixed(found.maghrib.iqama);
-  if (found.isha) iqamaTimes.isha = toFixed(found.isha.iqama);
-  if (jumuah) iqamaTimes.jumuah = [{ khutbah: { type: 'fixed', time: jumuah } }];
-
-  return { iqamaTimes, debug: { found, jumuah } };
-}
-
-function parseMasjidbox(html: string): { iqamaTimes: any; debug: any } {
-  // Masjidbox renders each prayer as: name → athan time → iqama time, with the
-  // hour and minutes split by a styled spacer <div>.
-  const itemRe =
-    /<span[^>]*>(Fajr|Dhuhr|Asr|Maghrib|Isha)[^<]*<\/span>[\s\S]*?class="iqamah[^"]*"[\s\S]*?<div class="time">\s*(\d+)\s*<div[^>]*><\/div>\s*(\d+)\s*<sup class="ampm">(AM|PM)<\/sup>/g;
-  const found: Record<string, string> = {};
-  let m: RegExpExecArray | null;
-  while ((m = itemRe.exec(html)) !== null) {
-    const key = m[1].toLowerCase();
-    found[key] = `${parseInt(m[2], 10)}:${m[3].padStart(2, '0')} ${m[4]}`;
-  }
-
-  let jumuah: string | null = null;
-  const jumuahIqama =
-    /<span[^>]*>Jumuah[^<]*<\/span>[\s\S]*?class="iqamah[^"]*"[\s\S]*?<div class="time">\s*(\d+)\s*<div[^>]*><\/div>\s*(\d+)\s*<sup class="ampm">(AM|PM)<\/sup>/.exec(
-      html,
-    );
-  if (jumuahIqama) {
-    jumuah = `${parseInt(jumuahIqama[1], 10)}:${jumuahIqama[2].padStart(2, '0')} ${jumuahIqama[3]}`;
-  }
-
-  const toFixed = (t: string | undefined) =>
-    t ? { type: 'fixed' as const, time: t } : undefined;
-
-  const iqamaTimes: any = {};
-  if (found.fajr) iqamaTimes.fajr = toFixed(found.fajr);
-  if (found.dhuhr) iqamaTimes.dhuhr = toFixed(found.dhuhr);
-  if (found.asr) iqamaTimes.asr = toFixed(found.asr);
-  if (found.maghrib) iqamaTimes.maghrib = toFixed(found.maghrib);
-  if (found.isha) iqamaTimes.isha = toFixed(found.isha);
-  if (jumuah) iqamaTimes.jumuah = [{ khutbah: { type: 'fixed', time: jumuah } }];
-
-  return { iqamaTimes, debug: { found, jumuah } };
-}
-
-function parseTheMasjidApp(html: string): { iqamaTimes: any; debug: any } {
-  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (!m) return { iqamaTimes: {}, debug: { error: '__NEXT_DATA__ not found' } };
-  let data: any;
+/** Sync one masjid and record the outcome. Never throws. */
+async function runTimeSync(id: string): Promise<any> {
+  const today = todayIn(TIMEZONE);
+  const mosque: any = await kv.get(`mosque:${id}`);
+  const source: TimeSource | undefined = mosque?.timeSync?.source;
+  let status: any;
   try {
-    data = JSON.parse(m[1]);
-  } catch (e) {
-    return { iqamaTimes: {}, debug: { error: 'JSON parse failed', message: String(e) } };
-  }
-  const masjid = data?.props?.pageProps?.masjid;
-  if (!masjid) return { iqamaTimes: {}, debug: { error: 'masjid missing' } };
-
-  const tz = masjid.timezone || 'America/New_York';
-  const now = new Date();
-  const partsFmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  const parts = Object.fromEntries(
-    partsFmt.formatToParts(now).map((p) => [p.type, p.value]),
-  );
-  const y = parseInt(parts.year, 10);
-  const mo = parseInt(parts.month, 10);
-  const d = parseInt(parts.day, 10);
-  const startOfYear = Date.UTC(y, 0, 1);
-  const today = Date.UTC(y, mo - 1, d);
-  const dayOfYear = Math.round((today - startOfYear) / 86400000) + 1;
-
-  const iqamas = masjid.iqamas || {};
-  const prayerKeys: Array<'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'> = [
-    'fajr', 'dhuhr', 'asr', 'maghrib', 'isha',
-  ];
-  const found: Record<string, string> = {};
-  for (const key of prayerKeys) {
-    for (let i = dayOfYear; i >= 1; i--) {
-      const entry = iqamas[String(i)];
-      if (entry && entry[key]) {
-        found[key] = normalizeTime(entry[key]);
-        break;
-      }
-    }
-  }
-
-  let jumuah: string | null = null;
-  const events = masjid.events || [];
-  for (const ev of events) {
-    if (ev?.isJuma && ev?.timeDesc) {
-      jumuah = normalizeTime(ev.timeDesc);
-      break;
-    }
-  }
-
-  const toFixed = (t: string | undefined) =>
-    t ? { type: 'fixed' as const, time: t } : undefined;
-  const iqamaTimes: any = {};
-  for (const key of prayerKeys) {
-    if (found[key]) iqamaTimes[key] = toFixed(found[key]);
-  }
-  if (jumuah) iqamaTimes.jumuah = [{ khutbah: { type: 'fixed', time: jumuah } }];
-
-  return { iqamaTimes, debug: { dayOfYear, found, jumuah } };
-}
-
-function parseAthanPlusMonthly(html: string): { iqamaTimes: any; debug: any } {
-  const monthMatch = html.match(/<td class="cMonth">\s*([A-Z]+)\s*<\/td>/);
-  const pageMonth = monthMatch ? monthMatch[1].toUpperCase() : null;
-  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const now = new Date();
-  const todayMonthIdx = parseInt(
-    new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: '2-digit' }).format(now),
-    10,
-  ) - 1;
-  const todayDay = parseInt(
-    new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', day: '2-digit' }).format(now),
-    10,
-  );
-  const pageMonthIdx = pageMonth ? months.indexOf(pageMonth) : -1;
-
-  const rowRe = /<tr>([\s\S]*?)<\/tr>/g;
-  const spanRe = /<span[^>]*>([\s\S]*?)<\/span>/g;
-  let row: RegExpExecArray | null;
-  let matchedRow: string[] | null = null;
-  while ((row = rowRe.exec(html)) !== null) {
-    const spans: string[] = [];
-    let s: RegExpExecArray | null;
-    spanRe.lastIndex = 0;
-    while ((s = spanRe.exec(row[1])) !== null) {
-      spans.push(s[1].replace(/\s+/g, ' ').trim());
-    }
-    if (spans.length !== 13) continue;
-    const dayNum = parseInt(spans[0], 10);
-    if (!Number.isFinite(dayNum)) continue;
-    if (dayNum !== todayDay) continue;
-    matchedRow = spans;
-    break;
-  }
-
-  const iqamaTimes: any = {};
-  if (matchedRow) {
-    const toFixed = (t: string) => ({ type: 'fixed' as const, time: normalizeTime(t) });
-    iqamaTimes.fajr = toFixed(matchedRow[4]);
-    iqamaTimes.dhuhr = toFixed(matchedRow[7]);
-    iqamaTimes.asr = toFixed(matchedRow[9]);
-    iqamaTimes.maghrib = toFixed(matchedRow[10]);
-    iqamaTimes.isha = toFixed(matchedRow[12]);
-  }
-
-  return {
-    iqamaTimes,
-    debug: { pageMonth, pageMonthIdx, todayMonthIdx, todayDay, matched: !!matchedRow },
-  };
-}
-
-function detectScraper(
-  website: string | undefined,
-): { scraper: string; url: string } | null {
-  if (!website) return null;
-  let host = '';
-  try {
-    const url = website.startsWith('http') ? website : `https://${website}`;
-    host = new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    host = website.toLowerCase();
-  }
-  const siteUrl = website.startsWith('http') ? website : `https://${website}`;
-  if (host.includes('alrahmamasjid.org')) return { scraper: 'al-rahma', url: siteUrl };
-  if (host.includes('masjidbox.com')) return { scraper: 'masjidbox', url: siteUrl };
-  if (host.includes('istaba.org') || host.includes('themasjidapp.org')) {
-    return { scraper: 'themasjidapp', url: 'https://themasjidapp.org/7856/prayers' };
-  }
-  if (host.includes('ictampa.org')) {
-    return {
-      scraper: 'athanplus-monthly',
-      url: 'https://timing.athanplus.com/masjid/widgets/monthly?masjid_id=0aAegzKj&theme=2',
+    if (!source) throw new SyncError('No source is set for this masjid.');
+    const schedule = await fetchSchedule(source, today);
+    const plan = planSync(mosque, schedule, today);
+    const updated = applyPlan(mosque, plan, schedule.label);
+    if (updated) await kv.set(`mosque:${id}`, updated);
+    status = {
+      ok: true,
+      message: plan.coveredThrough
+        ? `Up to date — your timetable has times through ${shortDate(plan.coveredThrough)}.`
+        : 'Your timetable has no times entered for today onward yet, so nothing was changed.',
+      sourceLastUpdated: schedule.lastUpdated,
+      coveredThrough: plan.coveredThrough,
+      updatedNow: plan.updateNow,
+      upcoming: plan.upcoming,
+      warnings: plan.warnings,
+    };
+  } catch (err) {
+    status = {
+      ok: false,
+      message: err instanceof SyncError ? err.message : `Sync failed: ${String(err)}`,
+      warnings: [],
     };
   }
-  return null;
+  status = { ...status, checkedAt: new Date().toISOString(), source: source ? sourceUrl(source) : null };
+  await kv.set(syncStatusKey(id), status);
+  return status;
 }
 
-app.post('/mosques/:id/scrape', requireAuth, async (c) => {
+// Called by the scheduled function. Public (it only ever applies what each
+// opted-in masjid's own source says), so it's throttled rather than secret.
+app.post('/timesync/run', async (c) => {
+  const last: any = await kv.get('timesync-lastrun');
+  if (last?.at && Date.now() - Date.parse(last.at) < 20 * 60_000) {
+    return c.json({ skipped: true, reason: 'Ran less than 20 minutes ago', lastRun: last.at });
+  }
+  await kv.set('timesync-lastrun', { at: new Date().toISOString() });
+
+  const mosques = (await kv.getByPrefix('mosque:')) || [];
+  const enabled = mosques.filter((m: any) => m?.timeSync?.enabled && m.timeSync.source);
+  const results: Record<string, any> = {};
+  for (const m of enabled) {
+    const s = await runTimeSync(m.id);
+    results[m.id] = { ok: s.ok, message: s.message, updatedNow: s.updatedNow?.length ?? 0, upcoming: s.upcoming?.length ?? 0 };
+  }
+  console.log('[timesync] run', JSON.stringify(results));
+  return c.json({ ran: enabled.length, results });
+});
+
+app.get('/mosques/:id/timesync', requireAuth, async (c) => {
+  const id = c.req.param('id');
+  const mosque: any = await kv.get(`mosque:${id}`);
+  if (!mosque) return c.json({ error: 'Mosque not found' }, 404);
+  return c.json({ config: mosque.timeSync || null, status: (await kv.get(syncStatusKey(id))) || null });
+});
+
+// Dry run: what the sync would do right now. Writes nothing.
+app.post('/mosques/:id/timesync/preview', requireAuth, async (c) => {
   try {
     const id = c.req.param('id');
     const mosque: any = await kv.get(`mosque:${id}`);
     if (!mosque) return c.json({ error: 'Mosque not found' }, 404);
+    const body = await c.req.json().catch(() => ({}));
 
-    const resolved = detectScraper(mosque.website);
-    if (!resolved) {
-      return c.json(
-        { error: 'No scraper available for this masjid', website: mosque.website },
-        400,
-      );
+    // A pasted link wins; then the saved source; then look on the masjid's website.
+    let source: TimeSource | null = body.link ? findSource(String(body.link)) : mosque.timeSync?.source || null;
+    let detected = false;
+    if (!source && !body.link && mosque.website) {
+      const site = mosque.website.startsWith('http') ? mosque.website : `https://${mosque.website}`;
+      const res = await fetch(site, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DaimunBot/1.0; +https://daimun.app)' } });
+      source = res.ok ? findSource(await res.text()) : null;
+      detected = !!source;
     }
-    const scraper = resolved.scraper;
+    if (!source) {
+      return c.json({
+        error: body.link
+          ? "That link isn't one we can read yet. Supported: themasjidapp.org and AthanPlus (Masjidal) timetables."
+          : "We couldn't find a supported prayer-times service on this masjid's website. Paste the link to its timetable instead.",
+      }, 400);
+    }
 
-    const res = await fetch(resolved.url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; DaimunBot/1.0; +https://daimun.app)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
+    const today = todayIn(TIMEZONE);
+    const schedule = await fetchSchedule(source, today);
+    return c.json({
+      source,
+      url: sourceUrl(source),
+      detected,
+      label: schedule.label,
+      sourceLastUpdated: schedule.lastUpdated,
+      plan: planSync(mosque, schedule, today),
     });
-    if (!res.ok) {
-      return c.json(
-        { error: 'Failed to fetch masjid website', status: res.status },
-        502,
-      );
-    }
-    const html = await res.text();
+  } catch (err) {
+    const message = err instanceof SyncError ? err.message : `Couldn't read the schedule: ${String(err)}`;
+    return c.json({ error: message }, 502);
+  }
+});
 
-    let parsed: { iqamaTimes: any; debug: any };
-    if (scraper === 'al-rahma') {
-      parsed = parseAlRahma(html);
-    } else if (scraper === 'masjidbox') {
-      parsed = parseMasjidbox(html);
-    } else if (scraper === 'themasjidapp') {
-      parsed = parseTheMasjidApp(html);
-    } else if (scraper === 'athanplus-monthly') {
-      parsed = parseAthanPlusMonthly(html);
-    } else {
-      return c.json({ error: 'Unknown scraper' }, 500);
+app.put('/mosques/:id/timesync', requireAuth, async (c) => {
+  try {
+    const id = c.req.param('id');
+    const mosque: any = await kv.get(`mosque:${id}`);
+    if (!mosque) return c.json({ error: 'Mosque not found' }, 404);
+    const body = await c.req.json();
+    const source = body.source as TimeSource | undefined;
+    if (body.enabled && !(source && ['themasjidapp', 'athanplus'].includes(source.provider) && /^[A-Za-z0-9_-]+$/.test(source.id))) {
+      return c.json({ error: 'A valid source is required to turn sync on.' }, 400);
     }
 
-    if (Object.keys(parsed.iqamaTimes).length === 0) {
-      return c.json(
-        { error: 'Parsed 0 prayer times from website', debug: parsed.debug },
-        500,
-      );
-    }
-
-    const updated = {
+    const today = todayIn(TIMEZONE);
+    await kv.set(`mosque:${id}`, {
       ...mosque,
-      iqamaTimes: { ...mosque.iqamaTimes, ...parsed.iqamaTimes },
-      updatedAt: new Date().toISOString(),
-    };
-    await kv.set(`mosque:${id}`, updated);
-
-    return c.json({ success: true, scraper, parsed: parsed.iqamaTimes, mosque: updated });
-  } catch (error) {
-    console.log(`Error scraping mosque: ${error}`);
-    return c.json({ error: 'Scrape failed', details: String(error) }, 500);
+      timeSync: { enabled: !!body.enabled, source: source || mosque.timeSync?.source, changedAt: new Date().toISOString() },
+      // Turning it off drops the upcoming changes it scheduled — nothing would
+      // keep them current. Times already in effect stay as they are.
+      ...(!body.enabled && {
+        scheduledTimeChanges: (mosque.scheduledTimeChanges || []).filter(
+          (ch: any) => ch.source !== SYNC_TAG || ch.startDate <= today,
+        ),
+      }),
+    });
+    // Turning it on syncs straight away rather than waiting for the next run.
+    const status = body.enabled ? await runTimeSync(id) : (await kv.get(syncStatusKey(id))) || null;
+    const latest: any = await kv.get(`mosque:${id}`);
+    return c.json({ config: latest.timeSync, status, mosque: latest });
+  } catch (err) {
+    console.log(`Error updating time sync: ${err}`);
+    return c.json({ error: 'Failed to update time sync', details: String(err) }, 500);
   }
 });
 

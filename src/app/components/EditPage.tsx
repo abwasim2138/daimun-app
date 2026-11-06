@@ -7,6 +7,7 @@ import { EditEventModal } from './EditEventModal';
 import { AddAnnouncementModal } from './AddAnnouncementModal';
 import { AddScheduledTimeChangeModal } from './AddScheduledTimeChangeModal';
 import { EmbedCodePanel } from './EmbedCodePanel';
+import { TimeSyncPanel } from './TimeSyncPanel';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { API_URL } from '../utils/api';
 import { useAuth } from './AuthContext';
@@ -412,6 +413,10 @@ export function EditPage({ mosqueId, onBack }: EditPageProps) {
         />
 
         <div className="mt-6">
+          <TimeSyncPanel mosque={mosque} onMosqueUpdated={setMosque} />
+        </div>
+
+        <div className="mt-3">
           <EmbedCodePanel
             mosqueId={mosqueId}
             mosqueName={mosque.name}
