@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, startTransition, Suspense } from 'react';
-import { MapPin, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map } from 'lucide-react';
+import { MapPin, BellOff, Globe, LogIn, LayoutDashboard, Compass, Locate, BookOpen, Megaphone, Heart, HandHeart, TriangleAlert, Mail, Newspaper, Sun, Moon, Monitor, PartyPopper, Map, Table2 } from 'lucide-react';
 import { projectId, publicAnonKey } from './utils/supabase/info';
 import { API_URL, SITE_URL } from './utils/api';
 import { navigate, parseRoute } from './utils/router';
@@ -53,6 +53,7 @@ const MasjidLandingPage = React.lazy(() => import('./components/MasjidLandingPag
 const ZakatAlFitrPage = React.lazy(() => import('./components/ZakatAlFitrPage').then(m => ({ default: m.ZakatAlFitrPage })));
 const ItikafGuidePage = React.lazy(() => import('./components/ItikafGuidePage').then(m => ({ default: m.ItikafGuidePage })));
 const EidGuidePage = React.lazy(() => import('./components/EidGuidePage').then(m => ({ default: m.EidGuidePage })));
+const AllTimesPage = React.lazy(() => import('./components/AllTimesPage').then(m => ({ default: m.AllTimesPage })));
 const EidTimesPage = React.lazy(() => import('./components/EidTimesPage').then(m => ({ default: m.EidTimesPage })));
 const RoadmapPage = React.lazy(() => import('./components/RoadmapPage').then(m => ({ default: m.RoadmapPage })));
 const AndroidEarlyAccessPage = React.lazy(() => import('./components/AndroidEarlyAccessPage').then(m => ({ default: m.AndroidEarlyAccessPage })));
@@ -317,6 +318,8 @@ export default function App() {
           <ItikafGuidePage onBack={() => navigate('/')} />
         ) : route.type === 'eid-guide' ? (
           <EidGuidePage onBack={() => navigate('/')} />
+        ) : route.type === 'prayer-times' ? (
+          <AllTimesPage onBack={() => navigate('/')} />
         ) : route.type === 'eid-times' ? (
           <EidTimesPage onBack={() => navigate('/')} />
         ) : route.type === 'roadmap' ? (
@@ -2254,6 +2257,15 @@ function AppContent({ deepLinkMosqueId, adminMode, timetableMosqueId }: { deepLi
 
           {/* Utility links */}
           <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a
+              href="/prayer-times"
+              onClick={(e) => { e.preventDefault(); navigate('/prayer-times'); window.scrollTo(0, 0); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:text-gray-700 dark:hover:text-white/70 transition-colors"
+            >
+              <Table2 className="w-3.5 h-3.5" />
+              <span>All Times</span>
+            </a>
+            <div className="w-px h-4 bg-gray-200 dark:bg-white/10" />
             <a
               href="/qibla"
               onClick={(e) => { e.preventDefault(); navigate('/qibla'); window.scrollTo(0, 0); }}

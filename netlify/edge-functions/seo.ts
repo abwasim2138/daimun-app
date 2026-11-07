@@ -58,6 +58,11 @@ const STATIC_META: Record<string, { title: string; description: string }> = {
     description:
       "Sponsor a Tampa Bay masjid's electricity or water bill and share in every deed it makes possible — the light on the path to Fajr, the wudū before every salah.",
   },
+  "/prayer-times": {
+    title: "Tampa Bay Iqama Times — All Masjids in One Table | Daimun",
+    description:
+      "Iqama times for every Tampa Bay masjid in one table — Fajr, Dhuhr, Asr, Maghrib, Isha and Jumuah. Print it or save it as an image for your phone.",
+  },
   "/whats-new": {
     title: "What's New — Daimun",
     description: "The latest features and updates to Daimun.",
