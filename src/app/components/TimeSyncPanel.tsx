@@ -185,9 +185,10 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
               )}
 
               <p className="text-xs text-gray-500 dark:text-white/45 leading-relaxed">
-                Checked every morning and evening. While this is on, change Fajr, Dhuhr, Asr and Isha on your{' '}
-                {config?.source ? PROVIDER[config.source.provider] : 'online'} timetable rather than here — the next
-                check would put them back. Maghrib and Jumuah stay as you set them.
+                Checked every morning and evening, and only changes on your{' '}
+                {config?.source ? PROVIDER[config.source.provider] : 'online'} timetable are passed on. You can still
+                change any time here, or edit or delete a synced change — the sync won't undo it. If your timetable
+                later changes that prayer again, the new time is applied. Maghrib and Jumuah stay as you set them.
               </p>
 
               <div className="flex flex-wrap gap-2">

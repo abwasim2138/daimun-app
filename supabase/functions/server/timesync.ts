@@ -44,6 +44,10 @@ export interface SyncPlan {
   /** Future change points, first day of each new time. */
   upcoming: { prayer: SyncPrayer; time: string; date: string }[];
   warnings: string[];
+  /** The source's times for today — remembered so an edit made in Daimun isn't undone later. */
+  seen: Partial<Record<SyncPrayer, string>>;
+  /** Synced changes the admin deleted or replaced (id → time), so they aren't recreated. */
+  dismissed: Record<string, string>;
 }
 
 export class SyncError extends Error {}
@@ -314,6 +318,27 @@ export function planSync(mosque: any, schedule: SourceSchedule, today: string): 
 
   const updateNow: SyncPlan['updateNow'] = [];
   const upcoming: SyncPlan['upcoming'] = [];
+  const seen: SyncPlan['seen'] = {};
+
+  // Edits made in Daimun always win. The sync passes on *changes* at the
+  // source, and never undoes an edit:
+  // - today's time is only updated when the source's time differs from the
+  //   one it last saw (i.e. the masjid changed its timetable), not merely
+  //   because Daimun differs;
+  // - an upcoming synced change the admin deleted or replaced (editing one
+  //   deletes it and saves a new entry) isn't recreated unless the source
+  //   later moves that change to a different time.
+  const sync = mosque.timeSync || {};
+  const lastSeen: Record<string, string> = sync.applied || {};
+  const present = new Set(((mosque.scheduledTimeChanges || []) as ScheduledChange[]).map((c) => c.id));
+  const dateOf = (id: string) => id.slice(5, 15); // sync-YYYY-MM-DD-prayer
+  const dismissed: Record<string, string> = {};
+  for (const [id, time] of Object.entries((sync.dismissed || {}) as Record<string, string>)) {
+    if (dateOf(id) > today) dismissed[id] = time;
+  }
+  for (const [id, time] of Object.entries((sync.created || {}) as Record<string, string>)) {
+    if (!present.has(id) && dateOf(id) > today) dismissed[id] = time;
+  }
 
   for (const p of SYNC_PRAYERS) {
     const points = series[p];
@@ -322,6 +347,9 @@ export function planSync(mosque: any, schedule: SourceSchedule, today: string): 
 
     if (points[0]?.date === today) {
       const override = manualOverride(mosque, p, today);
+      // Not while the admin's own schedule (e.g. Ramadan) covers this prayer:
+      // when it ends, the base time should still be brought up to date.
+      if (!override) seen[p] = points[0].time;
       if (override) {
         if (override.newTime !== points[0].time) {
           warnings.push(
@@ -329,7 +357,7 @@ export function planSync(mosque: any, schedule: SourceSchedule, today: string): 
               `${override.endDate ? ` until ${shortDate(override.endDate)}` : ''}; the source says ${points[0].time}. Left as is.`,
           );
         }
-      } else if (prev !== points[0].time) {
+      } else if (prev !== points[0].time && lastSeen[p] !== points[0].time) {
         updateNow.push({ prayer: p, from: describe(current), to: points[0].time });
       }
       prev = points[0].time;
@@ -357,14 +385,24 @@ export function planSync(mosque: any, schedule: SourceSchedule, today: string): 
       }
     }
     changes.forEach((c, i) => {
-      if (!held.has(i)) upcoming.push({ prayer: p, time: c.time, date: c.date });
+      if (!held.has(i) && dismissed[`sync-${c.date}-${p}`] !== c.time) {
+        upcoming.push({ prayer: p, time: c.time, date: c.date });
+      }
     });
   }
 
   const covered = schedule.days.filter((d) => d.date >= today).map((d) => d.date).sort();
   upcoming.sort((a, b) => a.date.localeCompare(b.date) || SYNC_PRAYERS.indexOf(a.prayer) - SYNC_PRAYERS.indexOf(b.prayer));
 
-  return { today, coveredThrough: covered.length ? covered[covered.length - 1] : null, updateNow, upcoming, warnings };
+  return {
+    today,
+    coveredThrough: covered.length ? covered[covered.length - 1] : null,
+    updateNow,
+    upcoming,
+    warnings,
+    seen,
+    dismissed,
+  };
 }
 
 /**
@@ -392,9 +430,20 @@ export function applyPlan(mosque: any, plan: SyncPlan, label: string): any | nul
     source: SYNC_TAG,
   }));
 
-  const next = { ...mosque, iqamaTimes, scheduledTimeChanges: [...theirs, ...ours] };
-  const same =
-    JSON.stringify(next.iqamaTimes) === JSON.stringify(mosque.iqamaTimes) &&
-    JSON.stringify(next.scheduledTimeChanges) === JSON.stringify(mosque.scheduledTimeChanges || []);
-  return same ? null : { ...next, updatedAt: new Date().toISOString() };
+  // What this run saw and scheduled, so the next run can tell the admin's
+  // edits apart from changes at the source.
+  const timeSync = {
+    ...mosque.timeSync,
+    applied: { ...(mosque.timeSync?.applied || {}), ...plan.seen },
+    created: Object.fromEntries(ours.map((c) => [c.id, c.newTime])),
+    dismissed: plan.dismissed,
+  };
+
+  const next = { ...mosque, iqamaTimes, scheduledTimeChanges: [...theirs, ...ours], timeSync };
+  const visible =
+    JSON.stringify(next.iqamaTimes) !== JSON.stringify(mosque.iqamaTimes) ||
+    JSON.stringify(next.scheduledTimeChanges) !== JSON.stringify(mosque.scheduledTimeChanges || []);
+  if (!visible && JSON.stringify(timeSync) === JSON.stringify(mosque.timeSync)) return null;
+  // Only a change people can see bumps updatedAt.
+  return visible ? { ...next, updatedAt: new Date().toISOString() } : next;
 }

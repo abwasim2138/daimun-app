@@ -359,9 +359,20 @@ app.put('/mosques/:id/timesync', requireAuth, async (c) => {
     }
 
     const today = todayIn(TIMEZONE);
+    const prev = mosque.timeSync || {};
+    const nextSource = source || prev.source;
+    // "Check now" on a running sync keeps what it has seen, so it still won't
+    // undo edits made in Daimun. Switching it on (or to another timetable)
+    // starts fresh and lines today's times up with the timetable.
+    const keepMemory = body.enabled && prev.enabled && JSON.stringify(prev.source) === JSON.stringify(nextSource);
     await kv.set(`mosque:${id}`, {
       ...mosque,
-      timeSync: { enabled: !!body.enabled, source: source || mosque.timeSync?.source, changedAt: new Date().toISOString() },
+      timeSync: {
+        enabled: !!body.enabled,
+        source: nextSource,
+        changedAt: new Date().toISOString(),
+        ...(keepMemory && { applied: prev.applied, created: prev.created, dismissed: prev.dismissed }),
+      },
       // Turning it off drops the upcoming changes it scheduled — nothing would
       // keep them current. Times already in effect stay as they are.
       ...(!body.enabled && {
