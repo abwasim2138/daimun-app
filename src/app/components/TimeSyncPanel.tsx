@@ -61,6 +61,7 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
   const [status, setStatus] = useState<Status | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [link, setLink] = useState('');
+  const [ignore, setIgnore] = useState<Prayer[]>((mosque.timeSync?.ignore as Prayer[]) || []);
   const [busy, setBusy] = useState<null | 'find' | 'save'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,6 +86,7 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
       try {
         const data = await call('');
         setConfig(data.config);
+        setIgnore((data.config?.ignore as Prayer[]) || []);
         setStatus(data.status);
       } catch {
         // Status is a nice-to-have; the panel still works without it.
@@ -93,12 +95,12 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
     }
   };
 
-  const find = async (pasted?: string) => {
+  const find = async (body: object = {}, keepPreview = false) => {
     setBusy('find');
     setError(null);
-    setPreview(null);
+    if (!keepPreview) setPreview(null);
     try {
-      setPreview(await call('/preview', { method: 'POST', body: JSON.stringify(pasted ? { link: pasted } : {}) }));
+      setPreview(await call('/preview', { method: 'POST', body: JSON.stringify({ ignore, ...body }) }));
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -106,11 +108,11 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
     }
   };
 
-  const save = async (on: boolean, source?: Source) => {
+  const save = async (on: boolean, source?: Source, nextIgnore: Prayer[] = ignore) => {
     setBusy('save');
     setError(null);
     try {
-      const data = await call('', { method: 'PUT', body: JSON.stringify({ enabled: on, source: source || config?.source }) });
+      const data = await call('', { method: 'PUT', body: JSON.stringify({ enabled: on, source: source || config?.source, ignore: nextIgnore }) });
       setConfig(data.config);
       setStatus(data.status);
       setPreview(null);
@@ -188,12 +190,20 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
                 Checked every morning and evening, and only changes on your{' '}
                 {config?.source ? PROVIDER[config.source.provider] : 'online'} timetable are passed on. You can still
                 change any time here, or edit or delete a synced change — the sync won't undo it. If your timetable
-                later changes that prayer again, the new time is applied. Maghrib and Jumuah stay as you set them.
+                later changes that prayer again, the new time is applied.
               </p>
 
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => save(true)} busy={busy === 'save'} primary>Check now</Button>
-                <Button onClick={() => save(false)} disabled={!!busy}>Turn off</Button>
+              <div className="space-y-3">
+                <PrayerPicker
+                  ignore={ignore}
+                  disabled={!!busy}
+                  onChange={(next) => { setIgnore(next); save(true, undefined, next); }}
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => save(true)} busy={busy === 'save'} primary>Check now</Button>
+                  <Button onClick={() => save(false)} disabled={!!busy}>Turn off</Button>
+                </div>
               </div>
             </>
           ) : (
@@ -205,16 +215,16 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
               </p>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button onClick={() => find()} busy={busy === 'find'} primary>Find our timetable</Button>
+                <Button onClick={() => find({})} busy={busy === 'find'} primary>Find our timetable</Button>
                 <span className="text-xs text-gray-400 dark:text-white/30">or</span>
                 <input
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && link.trim() && find(link.trim())}
+                  onKeyDown={(e) => e.key === 'Enter' && link.trim() && find({ link: link.trim() })}
                   placeholder="Paste your timetable link"
                   className="flex-1 min-w-[180px] px-3 py-1.5 rounded-lg text-sm bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.1] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30"
                 />
-                <Button onClick={() => find(link.trim())} disabled={!link.trim() || !!busy}>Check</Button>
+                <Button onClick={() => find({ link: link.trim() })} disabled={!link.trim() || !!busy}>Check</Button>
               </div>
 
               {preview && (
@@ -231,6 +241,11 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
                       {preview.sourceLastUpdated && ` · last edited ${when(preview.sourceLastUpdated)}`}
                     </p>
                   </div>
+                  <PrayerPicker
+                    ignore={ignore}
+                    disabled={!!busy}
+                    onChange={(next) => { setIgnore(next); find({ source: preview.source, ignore: next }, true); }}
+                  />
                   <Changes now={preview.plan.updateNow} upcoming={preview.plan.upcoming} warnings={preview.plan.warnings} />
                   <Button onClick={() => save(true, preview.source)} busy={busy === 'save'} primary>Turn on</Button>
                 </div>
@@ -300,5 +315,39 @@ function Button({ children, onClick, busy, disabled, primary }: {
       {busy && <Loader className="w-3.5 h-3.5 animate-spin" />}
       {children}
     </button>
+  );
+}
+
+const SYNCABLE: Prayer[] = ['fajr', 'dhuhr', 'asr', 'isha'];
+
+/**
+ * Which prayers to follow from the timetable. Untick one to set it yourself —
+ * handy for a time that moves a little every day (such as Fajr when it's
+ * "20 minutes after the adhan"). Maghrib and Jumuah are never synced.
+ */
+function PrayerPicker({ ignore, onChange, disabled }: {
+  ignore: Prayer[]; onChange: (next: Prayer[]) => void; disabled?: boolean;
+}) {
+  const flip = (p: Prayer) => onChange(ignore.includes(p) ? ignore.filter((x) => x !== p) : [...ignore, p]);
+  return (
+    <fieldset disabled={disabled} className="space-y-1.5">
+      <legend className="text-xs uppercase tracking-wide text-gray-400 dark:text-white/35 mb-1">Prayers to follow</legend>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {SYNCABLE.map((p) => (
+          <label key={p} className="inline-flex items-center gap-1.5 text-gray-800 dark:text-white/80 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!ignore.includes(p)}
+              onChange={() => flip(p)}
+              className="w-4 h-4 rounded accent-sky-600"
+            />
+            {LABEL[p]}
+          </label>
+        ))}
+      </div>
+      <p className="text-xs text-gray-500 dark:text-white/45 leading-relaxed">
+        Untick a prayer to keep setting it yourself here. Maghrib and Jumuah are always yours to set.
+      </p>
+    </fieldset>
   );
 }

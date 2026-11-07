@@ -296,7 +296,23 @@ function baseToday(mosque: any, prayer: SyncPrayer, today: string): any {
   return ours ? { type: 'fixed', time: ours.newTime } : mosque.iqamaTimes?.[prayer];
 }
 
-export function planSync(mosque: any, schedule: SourceSchedule, today: string): SyncPlan {
+/** Keep only real, syncable prayer names — the list comes from a request body or stored config. */
+export function cleanIgnore(v: unknown): SyncPrayer[] {
+  return Array.isArray(v) ? SYNC_PRAYERS.filter((p) => v.includes(p)) : [];
+}
+
+/**
+ * `ignore` lists prayers this masjid doesn't want followed from the timetable
+ * (e.g. a Fajr that moves a minute every day and is set once by hand). It
+ * defaults to the masjid's saved choice; the preview passes its own.
+ */
+export function planSync(
+  mosque: any,
+  schedule: SourceSchedule,
+  today: string,
+  ignore: unknown = mosque.timeSync?.ignore,
+): SyncPlan {
+  const skip = new Set(cleanIgnore(ignore));
   const warnings: string[] = [];
   const series: Record<SyncPrayer, { date: string; time: string }[]> = { fajr: [], dhuhr: [], asr: [], isha: [] };
   // A bad value usually repeats for days (e.g. "8:45 AM" for Isha all month), so group them.
@@ -305,6 +321,7 @@ export function planSync(mosque: any, schedule: SourceSchedule, today: string): 
   for (const day of [...schedule.days].sort((a, b) => a.date.localeCompare(b.date))) {
     if (day.date < today) continue;
     for (const p of SYNC_PRAYERS) {
+      if (skip.has(p)) continue;
       const raw = day.iqama[p];
       if (!raw || (p === 'dhuhr' && isFriday(day.date))) continue; // Friday's slot is Jumuah
       const time = normalizeTime(raw, p);
@@ -356,9 +373,16 @@ export function planSync(mosque: any, schedule: SourceSchedule, today: string): 
   }
 
   for (const p of SYNC_PRAYERS) {
+    if (skip.has(p)) continue;
     const points = series[p];
     const current = baseToday(mosque, p, today);
     let prev = current?.type === 'fixed' ? current.time : null;
+    if (current?.type === 'offset' && points.length) {
+      warnings.push(
+        `${LABEL[p]} is set to ${current.minutes} min after the adhan here. Syncing replaces that with the timetable's fixed times. ` +
+          `Untick ${LABEL[p]} to keep it as it is.`,
+      );
+    }
 
     if (points[0]?.date === today) {
       const override = manualOverride(mosque, p, today);
@@ -449,7 +473,11 @@ export function applyPlan(mosque: any, plan: SyncPlan, label: string): any | nul
   // edits apart from changes at the source.
   const timeSync = {
     ...mosque.timeSync,
-    applied: { ...(mosque.timeSync?.applied || {}), ...plan.seen },
+    applied: Object.fromEntries(
+      Object.entries({ ...(mosque.timeSync?.applied || {}), ...plan.seen }).filter(
+        ([p]) => !cleanIgnore(mosque.timeSync?.ignore).includes(p as SyncPrayer),
+      ),
+    ),
     created: Object.fromEntries(ours.map((c) => [c.id, c.newTime])),
     dismissed: plan.dismissed,
   };

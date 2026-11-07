@@ -166,6 +166,8 @@ export interface ScheduledTimeChange {
 export interface TimeSyncConfig {
   enabled: boolean;
   source?: { provider: 'themasjidapp' | 'athanplus'; id: string };
+  /** Prayers the sync leaves alone (e.g. a Fajr set by hand). Maghrib and Jumuah are never synced. */
+  ignore?: ('fajr' | 'dhuhr' | 'asr' | 'isha')[];
   changedAt?: string;
 }
 

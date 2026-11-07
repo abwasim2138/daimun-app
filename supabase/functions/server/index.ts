@@ -3,7 +3,7 @@ import { Hono } from 'https://esm.sh/hono@4.7.4';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import * as kv from './kv_store.tsx';
 import {
-  SYNC_TAG, SyncError, TIMEZONE, applyPlan, fetchSchedule, findSource, planSync, shortDate, sourceUrl, todayIn,
+  SYNC_TAG, SyncError, TIMEZONE, applyPlan, cleanIgnore, fetchSchedule, findSource, planSync, shortDate, sourceUrl, todayIn,
   type TimeSource,
 } from './timesync.ts';
 console.log('[BOOT] Imports resolved, v73-reset-flow', Date.now());
@@ -319,8 +319,12 @@ app.post('/mosques/:id/timesync/preview', requireAuth, async (c) => {
     if (!mosque) return c.json({ error: 'Mosque not found' }, 404);
     const body = await c.req.json().catch(() => ({}));
 
-    // A pasted link wins; then the saved source; then look on the masjid's website.
-    let source: TimeSource | null = body.link ? findSource(String(body.link)) : mosque.timeSync?.source || null;
+    const asked = body.source as TimeSource | undefined;
+    const askedValid = asked && ['themasjidapp', 'athanplus'].includes(asked.provider) && /^[A-Za-z0-9_-]+$/.test(String(asked.id));
+    // The source already chosen (when re-previewing); else a pasted link; else the saved source; else look on the masjid's website.
+    let source: TimeSource | null = askedValid
+      ? { provider: asked!.provider, id: String(asked!.id) }
+      : body.link ? findSource(String(body.link)) : mosque.timeSync?.source || null;
     let detected = false;
     if (!source && !body.link && mosque.website) {
       const site = mosque.website.startsWith('http') ? mosque.website : `https://${mosque.website}`;
@@ -344,7 +348,7 @@ app.post('/mosques/:id/timesync/preview', requireAuth, async (c) => {
       detected,
       label: schedule.label,
       sourceLastUpdated: schedule.lastUpdated,
-      plan: planSync(mosque, schedule, today),
+      plan: planSync(mosque, schedule, today, body.ignore !== undefined ? body.ignore : mosque.timeSync?.ignore),
     });
   } catch (err) {
     const message = err instanceof SyncError ? err.message : `Couldn't read the schedule: ${String(err)}`;
@@ -375,6 +379,7 @@ app.put('/mosques/:id/timesync', requireAuth, async (c) => {
       timeSync: {
         enabled: !!body.enabled,
         source: nextSource,
+        ignore: body.ignore !== undefined ? cleanIgnore(body.ignore) : cleanIgnore(prev.ignore),
         changedAt: new Date().toISOString(),
         ...(keepMemory && { applied: prev.applied, created: prev.created, dismissed: prev.dismissed }),
       },
