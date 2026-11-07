@@ -120,6 +120,10 @@ function MosqueQuickCard({
       freshnessLabel = `${Math.floor(diffHours / 168)}w ago`;
       freshnessColor = 'text-amber-500 dark:text-amber-400';
     }
+    // Latest change came from automatic time sync, not an admin
+    if (mosque.autoUpdatedAt && mosque.autoUpdatedAt === updatedAtStr) {
+      freshnessLabel = diffHours < 1 ? 'Just auto-updated' : `Auto-updated ${freshnessLabel}`;
+    }
   }
 
   const mosqueUrgent = suggestions.filter(s => s.severity === 'urgent').length;

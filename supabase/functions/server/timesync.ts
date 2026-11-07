@@ -444,6 +444,10 @@ export function applyPlan(mosque: any, plan: SyncPlan, label: string): any | nul
     JSON.stringify(next.iqamaTimes) !== JSON.stringify(mosque.iqamaTimes) ||
     JSON.stringify(next.scheduledTimeChanges) !== JSON.stringify(mosque.scheduledTimeChanges || []);
   if (!visible && JSON.stringify(timeSync) === JSON.stringify(mosque.timeSync)) return null;
-  // Only a change people can see bumps updatedAt.
-  return visible ? { ...next, updatedAt: new Date().toISOString() } : next;
+  if (!visible) return next;
+  // Only a change people can see bumps updatedAt. autoUpdatedAt marks it as
+  // ours, so the app can say "Auto-updated" — any later admin save bumps
+  // updatedAt past it and the label goes back to "Updated".
+  const now = new Date().toISOString();
+  return { ...next, updatedAt: now, autoUpdatedAt: now };
 }

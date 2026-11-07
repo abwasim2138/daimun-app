@@ -7,6 +7,7 @@ import { calculateIqamaTimes, getNextPrayer } from '../utils/iqamaCalculator';
 import { calculatePrayerTimes, formatPrayerTime, timeToMinutes } from '../utils/prayerTimes';
 import { getAutoAnnouncements, formatAnnouncementMessage } from '../utils/scheduledChangeAnnouncer';
 import { navigate } from '../utils/router';
+import { getRecentUpdate } from '../utils/recentUpdate';
 
 interface MosqueCardProps {
   mosque: Mosque;
@@ -70,31 +71,8 @@ export const MosqueCard = React.memo(function MosqueCard({
   // Get auto-generated announcements for scheduled time changes (1 day before)
   const autoAnnouncements = getAutoAnnouncements(mosque.scheduledTimeChanges);
 
-  // Check if mosque was recently updated (within last 24 hours)
-  const recentlyUpdated = (() => {
-    // Check both server-side updatedAt and client-side localStorage fallback
-    const localTimestamp = typeof window !== 'undefined' ? localStorage.getItem(`mosque-updated:${mosque.id}`) : null;
-    const updatedAtStr = mosque.updatedAt || localTimestamp;
-    if (!updatedAtStr) return null;
-    
-    // Use the most recent timestamp between server and local
-    let effectiveTimestamp = updatedAtStr;
-    if (mosque.updatedAt && localTimestamp) {
-      effectiveTimestamp = new Date(localTimestamp) > new Date(mosque.updatedAt) ? localTimestamp : mosque.updatedAt;
-    }
-    
-    const updatedDate = new Date(effectiveTimestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - updatedDate.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours > 24) return null;
-    // Friendly relative time
-    if (diffHours < 1) {
-      const mins = Math.floor(diffMs / (1000 * 60));
-      return mins <= 1 ? 'Just now' : `${mins}m ago`;
-    }
-    return `${Math.floor(diffHours)}h ago`;
-  })();
+  // "Updated 3h ago" / "Auto-updated 3h ago" for changes in the last 24 hours
+  const recentlyUpdated = getRecentUpdate(mosque);
 
   const handleCardClick = () => {
     onDetail(mosque);
@@ -187,7 +165,7 @@ export const MosqueCard = React.memo(function MosqueCard({
                   <span className="text-gray-300 dark:text-white/20">·</span>
                 )}
                 {recentlyUpdated && (
-                  <span className="text-emerald-600 dark:text-emerald-400/80">Updated {recentlyUpdated}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400/80">{recentlyUpdated.auto ? 'Auto-updated' : 'Updated'} {recentlyUpdated.ago}</span>
                 )}
               </p>
             )}

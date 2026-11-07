@@ -9,6 +9,7 @@ import { Mosque } from '../App';
 import { API_URL, publicAnonKey, SITE_URL } from '../utils/api';
 import type { VolunteerOpportunity } from './VolunteersPage';
 import { navigate } from '../utils/router';
+import { getRecentUpdate } from '../utils/recentUpdate';
 
 interface MosqueDetailModalProps {
   mosque: Mosque;
@@ -152,30 +153,8 @@ export function MosqueDetailModal({
   
   const nextPrayer = getNextPrayer(calculatedTimes, mosque.offeredPrayers);
 
-  // Check if mosque was recently updated (within last 24 hours)
-  const recentlyUpdated = (() => {
-    // Check both server-side updatedAt and client-side localStorage fallback
-    const localTimestamp = typeof window !== 'undefined' ? localStorage.getItem(`mosque-updated:${mosque.id}`) : null;
-    const updatedAtStr = mosque.updatedAt || localTimestamp;
-    if (!updatedAtStr) return null;
-    
-    // Use the most recent timestamp between server and local
-    let effectiveTimestamp = updatedAtStr;
-    if (mosque.updatedAt && localTimestamp) {
-      effectiveTimestamp = new Date(localTimestamp) > new Date(mosque.updatedAt) ? localTimestamp : mosque.updatedAt;
-    }
-    
-    const updatedDate = new Date(effectiveTimestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - updatedDate.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    if (diffHours > 24) return null;
-    if (diffHours < 1) {
-      const mins = Math.floor(diffMs / (1000 * 60));
-      return mins <= 1 ? 'Just now' : `${mins}m ago`;
-    }
-    return `${Math.floor(diffHours)}h ago`;
-  })();
+  // "Updated 3h ago" / "Auto-updated 3h ago" for changes in the last 24 hours
+  const recentlyUpdated = getRecentUpdate(mosque);
 
   return (
     <div 
@@ -224,7 +203,7 @@ export function MosqueDetailModal({
                 <span className="text-gray-300 dark:text-white/20">·</span>
               )}
               {recentlyUpdated && (
-                <span className="text-blue-600 dark:text-blue-400/80">Updated {recentlyUpdated}</span>
+                <span className="text-blue-600 dark:text-blue-400/80">{recentlyUpdated.auto ? 'Auto-updated' : 'Updated'} {recentlyUpdated.ago}</span>
               )}
             </div>
           </div>

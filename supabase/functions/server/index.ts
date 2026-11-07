@@ -131,6 +131,7 @@ function applyMatureScheduledChanges(mosque: any): boolean {
   const todayStr = todayIn(TIMEZONE);
 
   let modified = false;
+  let onlySynced = true; // every change applied came from automatic time sync
   const remaining: any[] = [];
 
   for (const change of mosque.scheduledTimeChanges) {
@@ -144,10 +145,12 @@ function applyMatureScheduledChanges(mosque: any): boolean {
         mosque.iqamaTimes[prayer] = { type: 'fixed', time: change.newTime };
       }
       modified = true;
+      if (change.source !== SYNC_TAG) onlySynced = false;
       // Don't keep this change
     } else if (endDate && endDate < todayStr) {
       // Ranged change that has expired → remove it
       modified = true;
+      onlySynced = false;
     } else {
       // Still pending or currently active ranged change → keep it
       remaining.push(change);
@@ -157,6 +160,8 @@ function applyMatureScheduledChanges(mosque: any): boolean {
   if (modified) {
     mosque.scheduledTimeChanges = remaining;
     mosque.updatedAt = new Date().toISOString();
+    // A synced change taking effect is still an automatic update ("Auto-updated" in the app).
+    if (onlySynced) mosque.autoUpdatedAt = mosque.updatedAt;
   }
 
   return modified;

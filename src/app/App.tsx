@@ -208,6 +208,7 @@ export interface Mosque {
   announcements?: Announcement[]; // Deprecated - kept for backward compatibility
   scheduledTimeChanges?: ScheduledTimeChange[]; // New field for scheduled iqama time changes
   updatedAt?: string; // ISO timestamp of last modification
+  autoUpdatedAt?: string; // Equals updatedAt when the latest change came from automatic time sync
   timeSync?: TimeSyncConfig;
   website?: string;
   whatsappChannel?: string; // WhatsApp Channel invite URL (e.g., https://whatsapp.com/channel/...)
