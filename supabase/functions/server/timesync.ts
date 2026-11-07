@@ -261,6 +261,21 @@ interface ScheduledChange {
   source?: string;
 }
 
+/**
+ * Deep equality that ignores key order. Records come back from Postgres JSONB
+ * with keys reordered, so comparing JSON.stringify output would see every
+ * stored change as different from the same change freshly built.
+ */
+function sameJson(a: unknown, b: unknown): boolean {
+  const canon = (v: any): any =>
+    Array.isArray(v)
+      ? v.map(canon)
+      : v && typeof v === 'object'
+        ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])]))
+        : v;
+  return JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+}
+
 const describe = (iq: any): string =>
   iq?.type === 'offset' ? `${iq.minutes} min after adhan` : iq?.time || '—';
 
@@ -441,9 +456,9 @@ export function applyPlan(mosque: any, plan: SyncPlan, label: string): any | nul
 
   const next = { ...mosque, iqamaTimes, scheduledTimeChanges: [...theirs, ...ours], timeSync };
   const visible =
-    JSON.stringify(next.iqamaTimes) !== JSON.stringify(mosque.iqamaTimes) ||
-    JSON.stringify(next.scheduledTimeChanges) !== JSON.stringify(mosque.scheduledTimeChanges || []);
-  if (!visible && JSON.stringify(timeSync) === JSON.stringify(mosque.timeSync)) return null;
+    !sameJson(next.iqamaTimes, mosque.iqamaTimes) ||
+    !sameJson(next.scheduledTimeChanges, mosque.scheduledTimeChanges || []);
+  if (!visible && sameJson(timeSync, mosque.timeSync)) return null;
   if (!visible) return next;
   // Only a change people can see bumps updatedAt. autoUpdatedAt marks it as
   // ours, so the app can say "Auto-updated" — any later admin save bumps
