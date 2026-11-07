@@ -320,7 +320,7 @@ app.post('/mosques/:id/timesync/preview', requireAuth, async (c) => {
     const body = await c.req.json().catch(() => ({}));
 
     const asked = body.source as TimeSource | undefined;
-    const askedValid = asked && ['themasjidapp', 'athanplus'].includes(asked.provider) && /^[A-Za-z0-9_-]+$/.test(String(asked.id));
+    const askedValid = asked && ['themasjidapp', 'athanplus', 'masjidbox'].includes(asked.provider) && /^[A-Za-z0-9_-]+$/.test(String(asked.id));
     // The source already chosen (when re-previewing); else a pasted link; else the saved source; else look on the masjid's website.
     let source: TimeSource | null = askedValid
       ? { provider: asked!.provider, id: String(asked!.id) }
@@ -335,7 +335,7 @@ app.post('/mosques/:id/timesync/preview', requireAuth, async (c) => {
     if (!source) {
       return c.json({
         error: body.link
-          ? "That link isn't one we can read yet. Supported: themasjidapp.org and AthanPlus (Masjidal) timetables."
+          ? "That link isn't one we can read yet. Supported: themasjidapp.org, AthanPlus (Masjidal) and MasjidBox timetables."
           : "We couldn't find a supported prayer-times service on this masjid's website. Paste the link to its timetable instead.",
       }, 400);
     }
@@ -363,7 +363,7 @@ app.put('/mosques/:id/timesync', requireAuth, async (c) => {
     if (!mosque) return c.json({ error: 'Mosque not found' }, 404);
     const body = await c.req.json();
     const source = body.source as TimeSource | undefined;
-    if (body.enabled && !(source && ['themasjidapp', 'athanplus'].includes(source.provider) && /^[A-Za-z0-9_-]+$/.test(source.id))) {
+    if (body.enabled && !(source && ['themasjidapp', 'athanplus', 'masjidbox'].includes(source.provider) && /^[A-Za-z0-9_-]+$/.test(source.id))) {
       return c.json({ error: 'A valid source is required to turn sync on.' }, 400);
     }
 

@@ -166,7 +166,7 @@ export interface ScheduledTimeChange {
 /** Automatic iqama-time sync from the masjid's online timetable (server: timesync.ts). */
 export interface TimeSyncConfig {
   enabled: boolean;
-  source?: { provider: 'themasjidapp' | 'athanplus'; id: string };
+  source?: { provider: 'themasjidapp' | 'athanplus' | 'masjidbox'; id: string };
   /** Prayers the sync leaves alone (e.g. a Fajr set by hand). Maghrib and Jumuah are never synced. */
   ignore?: ('fajr' | 'dhuhr' | 'asr' | 'isha')[];
   changedAt?: string;

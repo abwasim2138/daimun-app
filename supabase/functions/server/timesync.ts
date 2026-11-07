@@ -17,7 +17,7 @@
 export type SyncPrayer = 'fajr' | 'dhuhr' | 'asr' | 'isha';
 export const SYNC_PRAYERS: readonly SyncPrayer[] = ['fajr', 'dhuhr', 'asr', 'isha'];
 
-export type Provider = 'themasjidapp' | 'athanplus';
+export type Provider = 'themasjidapp' | 'athanplus' | 'masjidbox';
 export interface TimeSource {
   provider: Provider;
   id: string;
@@ -123,13 +123,15 @@ export function findSource(text: string): TimeSource | null {
   if (tma) return { provider: 'themasjidapp', id: tma[1] };
   const ap = text.match(/timing\.athanplus\.com\/[^"'\s]*?masjid_id=([A-Za-z0-9]+)/);
   if (ap) return { provider: 'athanplus', id: ap[1] };
+  const mb = text.match(/masjidbox\.com\/prayer-times\/([A-Za-z0-9_-]+)/);
+  if (mb) return { provider: 'masjidbox', id: mb[1] };
   return null;
 }
 
 export function sourceUrl(s: TimeSource): string {
-  return s.provider === 'themasjidapp'
-    ? `https://themasjidapp.org/${encodeURIComponent(s.id)}/prayers`
-    : `https://timing.athanplus.com/masjid/widgets/monthly?masjid_id=${encodeURIComponent(s.id)}&theme=2`;
+  if (s.provider === 'themasjidapp') return `https://themasjidapp.org/${encodeURIComponent(s.id)}/prayers`;
+  if (s.provider === 'masjidbox') return `https://masjidbox.com/prayer-times/${encodeURIComponent(s.id)}`;
+  return `https://timing.athanplus.com/masjid/widgets/monthly?masjid_id=${encodeURIComponent(s.id)}&theme=2`;
 }
 
 async function getPage(url: string): Promise<string> {
@@ -227,6 +229,56 @@ export function parseAthanPlusMonth(html: string): SourceDay[] {
   return out;
 }
 
+// ── MasjidBox ────────────────────────────────────────────────────────────
+
+/** "2026-11-06T13:30:00-05:00" → "1:30 PM", read straight off the string: the offset is the masjid's own. */
+function clock12(iso: unknown): string | undefined {
+  const m = typeof iso === 'string' ? iso.match(/T(\d{2}):(\d{2})/) : null;
+  if (!m) return undefined;
+  const h = +m[1];
+  return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+/**
+ * MasjidBox renders its prayer-times page on the server and embeds the
+ * week's schedule (adhan and iqama per day, as timestamps with the masjid's
+ * own UTC offset) as window.REDUX_STATE. That is what we read — the page as
+ * anyone opening it gets it. The week is all it holds.
+ */
+export function parseMasjidBox(html: string): SourceSchedule {
+  const m = html.match(/window\.REDUX_STATE\s*=\s*'([^']*)'/);
+  if (!m) throw new SyncError('Could not find the schedule on the page — its layout may have changed.');
+  let athany: any;
+  try {
+    // The state is URL-encoded, and its Arabic text uses %uXXXX escapes that
+    // decodeURIComponent rejects, so keep those literal.
+    athany = JSON.parse(decodeURIComponent(m[1].replace(/%u/g, '%25u')))?.masjidbox?.masjidboxAthany;
+  } catch {
+    throw new SyncError('The schedule data on the page could not be read.');
+  }
+  const week: any[] = Array.isArray(athany?.timetable) ? athany.timetable : [];
+  if (!week.length) throw new SyncError('The page has no prayer schedule.');
+  if (athany.isStale === true) {
+    throw new SyncError("MasjidBox marks this masjid's times as out of date, so nothing was changed.");
+  }
+
+  const days: SourceDay[] = [];
+  for (const d of week) {
+    const date = typeof d?.date === 'string' ? d.date.slice(0, 10) : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !d.iqamah) continue;
+    const iqama: SourceDay['iqama'] = {};
+    const adhan: NonNullable<SourceDay['adhan']> = {};
+    for (const p of SYNC_PRAYERS) {
+      const i = clock12(d.iqamah[p]);
+      if (i) iqama[p] = i;
+      const a = clock12(d[p]);
+      if (a) adhan[p] = a;
+    }
+    days.push({ date, iqama, adhan });
+  }
+  return { label: 'MasjidBox', days, lastUpdated: athany.settingLastUpdated };
+}
+
 // ── Fetching ─────────────────────────────────────────────────────────────
 
 export async function fetchSchedule(source: TimeSource, today: string): Promise<SourceSchedule> {
@@ -234,6 +286,10 @@ export async function fetchSchedule(source: TimeSource, today: string): Promise<
 
   if (source.provider === 'themasjidapp') {
     return parseTheMasjidApp(await getPage(sourceUrl(source)), today);
+  }
+  if (source.provider === 'masjidbox') {
+    const week = parseMasjidBox(await getPage(sourceUrl(source)));
+    return { ...week, days: week.days.filter((d) => d.date >= today && d.date <= end) };
   }
 
   const base = sourceUrl(source);

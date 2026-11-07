@@ -46,7 +46,7 @@ interface Props {
 }
 
 const LABEL: Record<Prayer, string> = { fajr: 'Fajr', dhuhr: 'Dhuhr', asr: 'Asr', isha: 'Isha' };
-const PROVIDER: Record<Source['provider'], string> = { themasjidapp: 'themasjidapp.org', athanplus: 'AthanPlus' };
+const PROVIDER: Record<Source['provider'], string> = { themasjidapp: 'themasjidapp.org', athanplus: 'AthanPlus', masjidbox: 'MasjidBox' };
 
 const day = (d: string) =>
   new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -209,8 +209,9 @@ export function TimeSyncPanel({ mosque, onMosqueUpdated }: Props) {
           ) : (
             <>
               <p className="text-gray-600 dark:text-white/60 leading-relaxed">
-                If your masjid publishes its timetable through <strong className="font-medium">themasjidapp.org</strong> or{' '}
-                <strong className="font-medium">AthanPlus (Masjidal)</strong>, Daimun can follow it: today's times are kept
+                If your masjid publishes its timetable through <strong className="font-medium">themasjidapp.org</strong>,{' '}
+                <strong className="font-medium">AthanPlus (Masjidal)</strong> or{' '}
+                <strong className="font-medium">MasjidBox</strong>, Daimun can follow it: today's times are kept
                 in step, and upcoming changes are scheduled so the community gets a heads-up the day before.
               </p>
 
